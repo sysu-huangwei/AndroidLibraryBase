@@ -1,8 +1,24 @@
 apply plugin: 'com.android.library'
 
+def Enable_Cmake_BuildAndCopy = readEnableNativeBuildFromLocalProperties()
+def ANDROID_NDK_PATH = readNdkPathFromLocalProperties()
+
 android {
     compileSdkVersion 29
     buildToolsVersion "29.0.3"
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['java']
+            resources.srcDirs = ['java']
+            aidl.srcDirs = ['java']
+            renderscript.srcDirs = ['java']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+            jniLibs.srcDirs = ['libs']
+        }
+    }
 
     defaultConfig {
         minSdkVersion 18
@@ -12,6 +28,32 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles 'consumer-rules.pro'
+
+        if (Enable_Cmake_BuildAndCopy) {
+            externalNativeBuild {
+                cmake {
+                    arguments "-DANDROID_PLATFORM=android-14",
+                            "-DANDROID_ARM_NEON=TRUE",
+                            "-DCMAKE_BUILD_TYPE=Release",
+                            "-DANDROID_NDK_PATH="+ANDROID_NDK_PATH+""
+                }
+            }
+            ndk {
+                //打包进APK的ABI类型
+                abiFilters "armeabi-v7a", "arm64-v8a"
+            }
+            packagingOptions {
+                pickFirst 'lib/*/liblibrarybase.so'
+            }
+        }
+    }
+
+    if (Enable_Cmake_BuildAndCopy) {
+        externalNativeBuild {
+            cmake {
+                path 'CMakeLists.txt'
+            }
+        }
     }
 
     buildTypes {
@@ -25,9 +67,37 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+}
 
-    implementation 'androidx.appcompat:appcompat:1.0.2'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+
+def readNdkPathFromLocalProperties() {
+    File file = rootProject.file('local.properties')
+    if (file.exists()) {
+        //加载资源
+        InputStream inputStream = rootProject.file('local.properties').newDataInputStream()
+        Properties properties = new Properties()
+        properties.load(inputStream)
+
+        if (properties.containsKey("ndk.dir")) {
+            return properties.getProperty("ndk.dir")
+        }
+    }
+    return ""
+}
+
+def readEnableNativeBuildFromLocalProperties() {
+    File file = rootProject.file('local.properties')
+    if (file.exists()) {
+        //加载资源
+        InputStream inputStream = rootProject.file('local.properties').newDataInputStream()
+        Properties properties = new Properties()
+        properties.load(inputStream)
+
+        if (properties.containsKey("native_build.enable")) {
+            return properties.getProperty("native_build.enable")
+        } else {
+            return false
+        }
+    }
+    return false
 }
