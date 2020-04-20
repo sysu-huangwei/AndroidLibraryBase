@@ -67,6 +67,8 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    api 'com.getkeepsafe.relinker:relinker:1.3.1'
 }
 
 
