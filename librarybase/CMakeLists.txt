@@ -26,10 +26,10 @@ project(${MY_LIBRARY_NAME})
 set(3rdBinarys_DIR ${PROJECT_SOURCE_DIR}/../3rdparty)
 
 # 跨平台源码库路径
-set(SourceCode_DIR ${PROJECT_SOURCE_DIR}/../librarybase)
+set(SourceCode_DIR ${PROJECT_SOURCE_DIR}/cpp/common)
 
 # 安卓平台源码路径
-set(AndroidCode_DIR ${PROJECT_SOURCE_DIR}/cpp)
+set(AndroidCode_DIR ${PROJECT_SOURCE_DIR}/cpp/android)
 
 
 # 设置cmake编译库输出的位置
@@ -40,6 +40,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/${ANDROID_ABI})
 include_directories(
         ${3rdBinarys_DIR}
         ${SourceCode_DIR}
+        ${SourceCode_DIR}/log
         ${AndroidCode_DIR}
 )
 
@@ -47,6 +48,7 @@ include_directories(
 file(
         GLOB SOURCE_FILES
         ${SourceCode_DIR}/*.cpp
+        ${SourceCode_DIR}/log/*.cpp
         ${AndroidCode_DIR}/*.cpp
 )
 
