@@ -31,12 +31,18 @@ namespace librarybase {
 
         static AAssetManager *getAssetManager();
 
+        static char *readFileToData(const char *filePath, long *size);
+
     private:
         static JNIEnv *getCacheEnv(JavaVM *jvm);
 
         static JavaVM *_psJavaVM;
 
         static AAssetManager *s_assetManager;
+
+        static char *readSDCardFileToData(const char *filePath, long *size);
+
+        static char *readAssetFileToData(const char *filePath, long *size);
     };
 
 }

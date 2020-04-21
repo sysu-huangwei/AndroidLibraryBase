@@ -5,6 +5,7 @@
 #include "JniHelper.h"
 #include <pthread.h>
 #include <android/asset_manager_jni.h>
+#include <stdio.h>
 
 #include "BaseLog.h"
 
@@ -132,6 +133,90 @@ namespace librarybase {
             return s_assetManager;
         }
         return assetM;
+    }
+
+    char *JniHelper::readFileToData(const char *filePath, long *size) {
+        FILE *file = fopen(filePath, "rb");
+        if (file) {
+            return readSDCardFileToData(filePath, size);
+        } else {
+            return readAssetFileToData(filePath, size);
+        }
+    }
+
+    char *JniHelper::readSDCardFileToData(const char *filePath, long *size) {
+        FILE *file = fopen(filePath, "rb");
+
+        fseek(file, 0, SEEK_END);
+        long dataSize = ftell(file);
+
+        fseek(file, 0, SEEK_SET);
+
+        if (dataSize > sizeof(int)) {
+            int firstInt = 0;
+            fread(&firstInt,sizeof(int), 1, file);
+            if ((dataSize - sizeof(int)) == firstInt) {// 带头数据
+                dataSize -= sizeof(int);
+            } else{
+                fseek(file, 0, SEEK_SET);
+            }
+        } else {
+            fseek(file, 0, SEEK_SET);
+        }
+
+        char *data = NULL;
+        if (dataSize > 0) {
+            data = new char[dataSize + 1];
+            fread(data, (size_t)dataSize, 1, file);
+            data[dataSize] = 0;
+        }
+        if (size) {
+            *size = dataSize;
+        }
+
+        fclose(file);
+
+        return data;
+    }
+
+    char *JniHelper::readAssetFileToData(const char *filePath, long *size) {
+        long dataSize = 0;
+        char *data = NULL;
+        AAssetManager* assetManager = JniHelper::getAssetManager();
+        if (filePath && assetManager) {
+            AAsset* fileInstance = AAssetManager_open(assetManager, filePath, AASSET_MODE_UNKNOWN);
+            if (fileInstance) {
+                dataSize = AAsset_getLength(fileInstance);
+                if (dataSize > sizeof(int)) {
+                    int firstInt = 0;
+                    AAsset_read(fileInstance, &firstInt, sizeof(int));
+                    if ((dataSize - sizeof(int)) == firstInt) { // 带头数据
+                        dataSize -= sizeof(int);
+                    } else {
+                        AAsset_seek(fileInstance, 0, 0);
+                    }
+                } else {
+                    AAsset_seek(fileInstance, 0, 0);
+                }
+                if (dataSize > 0) {
+                    data = new char[dataSize+1];
+                    AAsset_read(fileInstance, data, dataSize);
+                    data[dataSize] = 0;
+                }
+                AAsset_close(fileInstance);
+                *size = dataSize;
+            } else {
+                LOGE("JniHelper::readFileToData: AAssetManager_open failed: assetManager = %p, filePath = %s; result: fileInstance = %p", assetManager, filePath, fileInstance);
+            }
+        } else{
+            LOGE("JniHelper::readFileToData: filePath = %s, g_AAssetManager = %p", filePath, assetManager);
+        }
+
+        if (size) {
+            *size = dataSize;
+        }
+
+        return data;
     }
 
 }
