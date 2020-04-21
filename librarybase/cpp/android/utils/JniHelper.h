@@ -6,6 +6,7 @@
 #define ANDROIDLIBRARYBASE_JNIHELPER_H
 
 #include <jni.h>
+#include <android/asset_manager.h>
 
 namespace librarybase {
 
@@ -26,10 +27,16 @@ namespace librarybase {
         static bool getStaticMethodInfo(JniMethodInfo &methodInfo, const char *className,
                                         const char *methodName, const char *paramCode);
 
+        static void setAssetManager(AAssetManager *assetManager);
+
+        static AAssetManager *getAssetManager();
+
     private:
         static JNIEnv *getCacheEnv(JavaVM *jvm);
 
         static JavaVM *_psJavaVM;
+
+        static AAssetManager *s_assetManager;
     };
 
 }

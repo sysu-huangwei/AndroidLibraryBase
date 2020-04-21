@@ -1,5 +1,8 @@
 package com.example.librarybase;
 
+import android.content.Context;
+import android.content.res.AssetManager;
+
 import androidx.annotation.IntDef;
 
 import com.example.librarybase.soloader.BaseSoLoader;
@@ -13,6 +16,8 @@ import java.lang.annotation.RetentionPolicy;
  * Description: 底层类的基类，防止库加载失败或中途被卸载引发崩溃问题
  */
 public class LibraryBase {
+
+    private static Context sApplicationContext = null;
 
     private static void loadBaseLibrary() {
         try {
@@ -64,6 +69,31 @@ public class LibraryBase {
         nativeSetLogLevel(logLevel);
     }
 
+
+    /**
+     * 设置设备上下文，主要用于底层获取AssetManager
+     * @param context 设备上下文
+     */
+    public static void setContext(Context context) {
+        sApplicationContext = context.getApplicationContext();
+        nativeSetAssetManager(context.getAssets());
+    }
+
+    /**
+     * 给底层反射调用获取最新可用的AssetManager
+     * @return 返回最新可用的AssetManager
+     */
+    public static AssetManager getAssetManager() {
+        if (sApplicationContext == null) {
+            return null;
+        }
+        return sApplicationContext.getAssets();
+    }
+
+
+
     private static native void nativeSetLogLevel(int logLevel);
+
+    private static native void nativeSetAssetManager(AssetManager assetManager);
 
 }
