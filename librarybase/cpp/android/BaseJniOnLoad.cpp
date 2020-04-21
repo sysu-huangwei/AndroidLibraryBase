@@ -1,6 +1,7 @@
 #include <jni.h>
 
 #include "BaseLog.h"
+#include "JniHelper.h"
 #include "LibraryBaseJni.h"
 
 using namespace librarybase;
@@ -16,6 +17,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved) {
         return JNI_ERR;
     }
 
+    JniHelper::setJavaVM(jvm);
 
     if (registerLibraryBaseNativeMethods(env, reserved) == JNI_ERR) {
         LOGE("failed to registerLibraryBaseNativeMethods");
