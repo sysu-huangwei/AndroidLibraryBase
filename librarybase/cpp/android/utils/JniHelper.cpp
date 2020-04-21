@@ -135,6 +135,37 @@ namespace librarybase {
         return assetM;
     }
 
+    jobject JniHelper::getContext() {
+        JNIEnv *env = JniHelper::getEnv();
+        if (!env) {
+            LOGE("JniHelper::getContext: Failed to get JNIEnv");
+            return NULL;
+        }
+
+        jclass libraryBaseClass = env->FindClass("com/example/librarybase/LibraryBase");
+        if (!libraryBaseClass) {
+            LOGE("JniHelper::getContext: Failed to find class %s", "com/example/librarybase/LibraryBase");
+            env->ExceptionClear();
+            return NULL;
+        }
+
+        jfieldID contextFileID = env->GetStaticFieldID(libraryBaseClass, "sApplicationContext", "Landroid/content/Context;");
+        if (!contextFileID) {
+            LOGE("JniHelper::getContext: Failed to GetStaticFieldID: sApplicationContext");
+            env->ExceptionClear();
+            return NULL;
+        }
+
+        jobject context = env->GetStaticObjectField(libraryBaseClass, contextFileID);
+        if (!context) {
+            LOGE("JniHelper::getContext: Failed to GetStaticObjectField");
+            env->ExceptionClear();
+            return NULL;
+        }
+
+        return context;
+    }
+
     char *JniHelper::readFileToData(const char *filePath, long *size) {
         FILE *file = fopen(filePath, "rb");
         if (file) {

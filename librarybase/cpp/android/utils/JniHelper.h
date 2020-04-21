@@ -31,6 +31,8 @@ namespace librarybase {
 
         static AAssetManager *getAssetManager();
 
+        static jobject getContext();
+
         static char *readFileToData(const char *filePath, long *size);
 
     private:
