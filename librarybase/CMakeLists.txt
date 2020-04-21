@@ -44,6 +44,7 @@ include_directories(
         ${AndroidCode_DIR}
         ${AndroidCode_DIR}/librarybase
         ${AndroidCode_DIR}/utils
+        ${AndroidCode_DIR}/bitmap
 )
 
 # 设置变量，表示所有的源文件
@@ -54,6 +55,7 @@ file(
         ${AndroidCode_DIR}/*.cpp
         ${AndroidCode_DIR}/librarybase/*.cpp
         ${AndroidCode_DIR}/utils/*.cpp
+        ${AndroidCode_DIR}/bitmap/*.cpp
 )
 
 
