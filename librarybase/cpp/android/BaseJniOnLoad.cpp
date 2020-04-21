@@ -1,5 +1,9 @@
 #include <jni.h>
-#include <log/BaseLog.h>
+
+#include "BaseLog.h"
+#include "LibraryBaseJni.h"
+
+using namespace librarybase;
 
 //Load so
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved) {
@@ -11,6 +15,13 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved) {
         LOGE("JNI_OnLoad error: failed to getEnv!");
         return JNI_ERR;
     }
+
+
+    if (registerLibraryBaseNativeMethods(env, reserved) == JNI_ERR) {
+        LOGE("failed to registerLibraryBaseNativeMethods");
+        return JNI_ERR;
+    }
+
 
     LOGD("JNI_OnLoad: liblibrarybase.so has attached to system!");
 

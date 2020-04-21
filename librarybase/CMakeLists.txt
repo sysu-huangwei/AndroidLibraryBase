@@ -42,6 +42,7 @@ include_directories(
         ${SourceCode_DIR}
         ${SourceCode_DIR}/log
         ${AndroidCode_DIR}
+        ${AndroidCode_DIR}/librarybase
 )
 
 # 设置变量，表示所有的源文件
@@ -50,6 +51,7 @@ file(
         ${SourceCode_DIR}/*.cpp
         ${SourceCode_DIR}/log/*.cpp
         ${AndroidCode_DIR}/*.cpp
+        ${AndroidCode_DIR}/librarybase/*.cpp
 )
 
 
