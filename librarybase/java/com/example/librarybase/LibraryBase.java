@@ -15,7 +15,7 @@ import java.lang.annotation.RetentionPolicy;
  * Date: 2020/4/20
  * Description: 底层类的基类，防止库加载失败或中途被卸载引发崩溃问题
  */
-public class LibraryBase {
+public abstract class LibraryBase {
 
     private static Context sApplicationContext = null;
 
@@ -39,6 +39,19 @@ public class LibraryBase {
 
     static {
         loadBaseLibrary();
+    }
+
+    /**
+     * 尝试运行native方法，失败时会重新加载动态库，防止库加载失败或中途被卸载导致崩溃问题
+     * @param runnable 里面包含需要运行的native方法
+     */
+    public static void tryRunNativeMethod(Runnable runnable) {
+        try {
+            runnable.run();
+        } catch (Throwable e) {
+            loadBaseLibrary();
+            runnable.run();
+        }
     }
 
 
