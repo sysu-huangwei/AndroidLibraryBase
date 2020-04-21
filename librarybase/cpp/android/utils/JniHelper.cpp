@@ -105,9 +105,9 @@ namespace librarybase {
 
     AAssetManager *JniHelper::getAssetManager() {
         JniMethodInfo jMethodInfo;
-        const char* className = "com/example/librarybase/LibraryBase";
-        const char* methodName = "getAssetManager";
-        const char* paramCode = "()Landroid/content/res/AssetManager;";
+        const char *className = "com/example/librarybase/LibraryBase";
+        const char *methodName = "getAssetManager";
+        const char *paramCode = "()Landroid/content/res/AssetManager;";
 
         //反射调用寻找getAssetManager方法
         if (!JniHelper::getStaticMethodInfo(jMethodInfo, className, methodName, paramCode)) {
@@ -116,7 +116,8 @@ namespace librarybase {
         }
 
         //调用getAssetManager方法
-        jobject jAssetManager = jMethodInfo.env->CallStaticObjectMethod(jMethodInfo.classID, jMethodInfo.methodID);
+        jobject jAssetManager = jMethodInfo.env->CallStaticObjectMethod(jMethodInfo.classID,
+                                                                        jMethodInfo.methodID);
         if (jAssetManager == NULL) {
             LOGE("JniHelper::getAssetManager: failed to get AssetManager from context");
             jMethodInfo.env->DeleteLocalRef(jMethodInfo.classID);
@@ -125,9 +126,8 @@ namespace librarybase {
 
         //AssetManager
         jMethodInfo.env->DeleteLocalRef(jMethodInfo.classID);
-        AAssetManager* assetM = AAssetManager_fromJava(jMethodInfo.env, jAssetManager);
-        if (assetM == NULL)
-        {
+        AAssetManager *assetM = AAssetManager_fromJava(jMethodInfo.env, jAssetManager);
+        if (assetM == NULL) {
             LOGE("JniHelper::getAssetManager: failed to access AssetManager from java");
             return s_assetManager;
         }

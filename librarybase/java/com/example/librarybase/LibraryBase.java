@@ -72,6 +72,7 @@ public class LibraryBase {
 
     /**
      * 设置设备上下文，主要用于底层获取AssetManager
+     *
      * @param context 设备上下文
      */
     public static void setContext(Context context) {
@@ -81,6 +82,7 @@ public class LibraryBase {
 
     /**
      * 给底层反射调用获取最新可用的AssetManager
+     *
      * @return 返回最新可用的AssetManager
      */
     public static AssetManager getAssetManager() {
@@ -89,7 +91,6 @@ public class LibraryBase {
         }
         return sApplicationContext.getAssets();
     }
-
 
 
     private static native void nativeSetLogLevel(int logLevel);
