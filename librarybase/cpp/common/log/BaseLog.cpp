@@ -10,7 +10,6 @@ void BASE_SetLogLevel(int level) {
     sBaseLogLevel = level;
 }
 
-int BASE_GetLogLevel()
-{
+int BASE_GetLogLevel() {
     return sBaseLogLevel;
 }

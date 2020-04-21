@@ -18,7 +18,7 @@ namespace librarybase {
 
     // jni 接口映射
     static JNINativeMethod methods[] = {
-            {"nativeSetLogLevel",       "(I)V",        (void *) LibraryBaseJni::setLogLevel},
+            {"nativeSetLogLevel", "(I)V", (void *) LibraryBaseJni::setLogLevel},
     };
 
     int registerLibraryBaseNativeMethods(JNIEnv *env, void *reserved) {

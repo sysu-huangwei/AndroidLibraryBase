@@ -23,10 +23,11 @@ namespace librarybase {
 
         static JNIEnv *getEnv();
 
-        static bool getStaticMethodInfo(JniMethodInfo &methodInfo, const char *className, const char *methodName, const char *paramCode);
+        static bool getStaticMethodInfo(JniMethodInfo &methodInfo, const char *className,
+                                        const char *methodName, const char *paramCode);
 
     private:
-        static JNIEnv *getCacheEnv(JavaVM* jvm);
+        static JNIEnv *getCacheEnv(JavaVM *jvm);
 
         static JavaVM *_psJavaVM;
     };
