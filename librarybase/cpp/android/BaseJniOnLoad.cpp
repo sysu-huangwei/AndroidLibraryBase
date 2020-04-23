@@ -3,6 +3,7 @@
 #include "BaseLog.h"
 #include "JniHelper.h"
 #include "LibraryBaseJni.h"
+#include "LibraryBaseTestJni.h"
 
 using namespace librarybase;
 
@@ -24,6 +25,10 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved) {
         return JNI_ERR;
     }
 
+    if (registerLibraryBaseTestNativeMethods(env, reserved) == JNI_ERR) {
+        LOGE("failed to registerLibraryBaseTestNativeMethods");
+        return JNI_ERR;
+    }
 
     LOGD("JNI_OnLoad: liblibrarybase.so has attached to system!");
 
