@@ -105,11 +105,14 @@ target_link_libraries(${MY_LIBRARY_NAME}
         GLESv2
 )
 
-add_custom_command(TARGET ${MY_LIBRARY_NAME}
-    POST_BUILD
-    COMMAND mkdir -p ${PROJECT_SOURCE_DIR}/obj/${ANDROID_ABI}  &&  cp ${PROJECT_SOURCE_DIR}/libs/${ANDROID_ABI}/lib${MY_LIBRARY_NAME}.so ${PROJECT_SOURCE_DIR}/obj/${ANDROID_ABI}
-    COMMAND ${ANDROID_NDK_PATH}/toolchains/${STRIP_PATH}-4.9/prebuilt/darwin-x86_64/bin/${STRIP_PATH}-strip --strip-all ${PROJECT_SOURCE_DIR}/libs/${ANDROID_ABI}/lib${MY_LIBRARY_NAME}.so
-)
-
+if(DEBUG_CPP)
+    message(STATUS "${MY_LIBRARY_NAME} C++ Debug Mode")
+else()
+    add_custom_command(TARGET ${MY_LIBRARY_NAME}
+        POST_BUILD
+        COMMAND mkdir -p ${PROJECT_SOURCE_DIR}/obj/${ANDROID_ABI}  &&  cp ${PROJECT_SOURCE_DIR}/libs/${ANDROID_ABI}/lib${MY_LIBRARY_NAME}.so ${PROJECT_SOURCE_DIR}/obj/${ANDROID_ABI}
+        COMMAND ${ANDROID_NDK_PATH}/toolchains/${STRIP_PATH}-4.9/prebuilt/darwin-x86_64/bin/${STRIP_PATH}-strip --strip-all ${PROJECT_SOURCE_DIR}/libs/${ANDROID_ABI}/lib${MY_LIBRARY_NAME}.so
+    )
+endif()
            
 

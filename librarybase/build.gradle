@@ -1,6 +1,7 @@
 apply plugin: 'com.android.library'
 
 def Enable_Cmake_BuildAndCopy = readEnableNativeBuildFromLocalProperties()
+def Enable_Debug_Cpp = readEnableDebugCPPFromLocalProperties()
 def ANDROID_NDK_PATH = readNdkPathFromLocalProperties()
 
 android {
@@ -35,6 +36,7 @@ android {
                     arguments "-DANDROID_PLATFORM=android-14",
                             "-DANDROID_ARM_NEON=TRUE",
                             "-DCMAKE_BUILD_TYPE=Release",
+                            "-DDEBUG_CPP="+Enable_Debug_Cpp+"",
                             "-DANDROID_NDK_PATH="+ANDROID_NDK_PATH+""
                 }
             }
@@ -98,6 +100,23 @@ def readEnableNativeBuildFromLocalProperties() {
 
         if (properties.containsKey("native_build.enable")) {
             return properties.getProperty("native_build.enable")
+        } else {
+            return false
+        }
+    }
+    return false
+}
+
+def readEnableDebugCPPFromLocalProperties() {
+    File file = rootProject.file('local.properties')
+    if (file.exists()) {
+        //加载资源
+        InputStream inputStream = rootProject.file('local.properties').newDataInputStream()
+        Properties properties = new Properties()
+        properties.load(inputStream)
+
+        if (properties.containsKey("debug_cpp")) {
+            return properties.getProperty("debug_cpp")
         } else {
             return false
         }
