@@ -42,7 +42,7 @@ namespace librarybase {
         return strPackageNameReturn;
     }
 
-    char *AndroidHelper::getAndroidDataDir(JNIEnv *env, jobject obj, jobject context) {
+    char *AndroidHelper::getAndroidDataDir(JNIEnv *env, jobject context) {
         if (context == 0) {
             return NULL;
         }
@@ -125,6 +125,199 @@ namespace librarybase {
         strSourceDirReturn[strlen(strSourceDir)] = '\0';
         env->ReleaseStringUTFChars(jstrSourceDir, strSourceDir);
         return strSourceDirReturn;
+    }
+
+    char *AndroidHelper::getAndroidCacheDir(JNIEnv *env, jobject context) {
+        if (context == 0) {
+            return NULL;
+        }
+
+        //Context类
+        jclass contextClass = env->FindClass("android/content/Context");
+        if (contextClass == 0) {
+            return NULL;
+        }
+
+        //getCacheDir方法
+        jmethodID getCacheDirMethod = env->GetMethodID(contextClass, "getCacheDir", "()Ljava/io/File;");
+        if (getCacheDirMethod == 0) {
+            return NULL;
+        }
+
+        //调用方法获取File对象
+        jobject objFile = env->CallObjectMethod(context, getCacheDirMethod);
+        if (objFile == 0) {
+            return NULL;
+        }
+
+        //File类
+        jclass fileClass = env->FindClass("java/io/File");
+        if (fileClass == 0) {
+            return NULL;
+        }
+
+        jmethodID getAbsolutePathMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+        if (getAbsolutePathMethod == 0) {
+            return NULL;
+        }
+
+        //调用方法获取File对象
+        jstring jstrCacheDir = (jstring) env->CallObjectMethod(objFile, getAbsolutePathMethod);
+        if (jstrCacheDir == 0) {
+            return NULL;
+        }
+
+        const char *strCacheDir = env->GetStringUTFChars(jstrCacheDir, 0);
+        char *strCacheDirReturn = new char[strlen(strCacheDir) + 1];
+        strcpy(strCacheDirReturn, strCacheDir);
+        strCacheDirReturn[strlen(strCacheDir)] = '\0';
+        env->ReleaseStringUTFChars(jstrCacheDir, strCacheDir);
+        return strCacheDirReturn;
+    }
+
+    char *AndroidHelper::getAndroidFilesDir(JNIEnv *env, jobject context) {
+        if (context == 0) {
+            return NULL;
+        }
+
+        //Context类
+        jclass contextClass = env->FindClass("android/content/Context");
+        if (contextClass == 0) {
+            return NULL;
+        }
+
+        //getFilesDir方法
+        jmethodID getFilesDirMethod = env->GetMethodID(contextClass, "getFilesDir", "()Ljava/io/File;");
+        if (getFilesDirMethod == 0) {
+            return NULL;
+        }
+
+        //调用方法获取File对象
+        jobject objFile = env->CallObjectMethod(context, getFilesDirMethod);
+        if (objFile == 0) {
+            return NULL;
+        }
+
+        //File类
+        jclass fileClass = env->FindClass("java/io/File");
+        if (fileClass == 0) {
+            return NULL;
+        }
+
+        jmethodID getAbsolutePathMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+        if (getAbsolutePathMethod == 0) {
+            return NULL;
+        }
+
+        //调用方法获取File对象
+        jstring jstrFilesDir = (jstring) env->CallObjectMethod(objFile, getAbsolutePathMethod);
+        if (jstrFilesDir == 0) {
+            return NULL;
+        }
+
+        const char *strFilesDir = env->GetStringUTFChars(jstrFilesDir, 0);
+        char *strFilesDirReturn = new char[strlen(strFilesDir) + 1];
+        strcpy(strFilesDirReturn, strFilesDir);
+        strFilesDirReturn[strlen(strFilesDir)] = '\0';
+        env->ReleaseStringUTFChars(jstrFilesDir, strFilesDir);
+        return strFilesDirReturn;
+    }
+
+    char *AndroidHelper::getAndroidExternalCacheDir(JNIEnv *env, jobject context) {
+        if (context == 0) {
+            return NULL;
+        }
+
+        //Context类
+        jclass contextClass = env->FindClass("android/content/Context");
+        if (contextClass == 0) {
+            return NULL;
+        }
+
+        //getCacheDir方法
+        jmethodID getExternalCacheDirMethod = env->GetMethodID(contextClass, "getExternalCacheDir", "()Ljava/io/File;");
+        if (getExternalCacheDirMethod == 0) {
+            return NULL;
+        }
+
+        //调用方法获取File对象
+        jobject objFile = env->CallObjectMethod(context, getExternalCacheDirMethod);
+        if (objFile == 0) {
+            return NULL;
+        }
+
+        //File类
+        jclass fileClass = env->FindClass("java/io/File");
+        if (fileClass == 0) {
+            return NULL;
+        }
+
+        jmethodID getAbsolutePathMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+        if (getAbsolutePathMethod == 0) {
+            return NULL;
+        }
+
+        //调用方法获取File对象
+        jstring jstrExternalCacheDir = (jstring) env->CallObjectMethod(objFile, getAbsolutePathMethod);
+        if (jstrExternalCacheDir == 0) {
+            return NULL;
+        }
+
+        const char *strExternalCacheDir = env->GetStringUTFChars(jstrExternalCacheDir, 0);
+        char *strExternalCacheDirReturn = new char[strlen(strExternalCacheDir) + 1];
+        strcpy(strExternalCacheDirReturn, strExternalCacheDir);
+        strExternalCacheDirReturn[strlen(strExternalCacheDir)] = '\0';
+        env->ReleaseStringUTFChars(jstrExternalCacheDir, strExternalCacheDir);
+        return strExternalCacheDirReturn;
+    }
+
+    char *AndroidHelper::getAndroidExternalFilesDir(JNIEnv *env, jobject context) {
+        if (context == 0) {
+            return NULL;
+        }
+
+        //Context类
+        jclass contextClass = env->FindClass("android/content/Context");
+        if (contextClass == 0) {
+            return NULL;
+        }
+
+        //getFilesDir方法
+        jmethodID getExternalFilesDirMethod = env->GetMethodID(contextClass, "getExternalFilesDir",
+                                                       "(Ljava/lang/String;)Ljava/io/File;");
+        if (getExternalFilesDirMethod == 0) {
+            return NULL;
+        }
+
+        //调用方法获取File对象
+        jobject objFile = env->CallObjectMethod(context, getExternalFilesDirMethod, (jobject)(NULL));
+        if (objFile == 0) {
+            return NULL;
+        }
+
+        //File类
+        jclass fileClass = env->FindClass("java/io/File");
+        if (fileClass == 0) {
+            return NULL;
+        }
+
+        jmethodID getAbsolutePathMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+        if (getAbsolutePathMethod == 0) {
+            return NULL;
+        }
+
+        //调用方法获取File对象
+        jstring jstrExternalFilesDir = (jstring) env->CallObjectMethod(objFile, getAbsolutePathMethod);
+        if (jstrExternalFilesDir == 0) {
+            return NULL;
+        }
+
+        const char *strExternalFilesDir = env->GetStringUTFChars(jstrExternalFilesDir, 0);
+        char *strExternalFilesDirReturn = new char[strlen(strExternalFilesDir) + 1];
+        strcpy(strExternalFilesDirReturn, strExternalFilesDir);
+        strExternalFilesDirReturn[strlen(strExternalFilesDir)] = '\0';
+        env->ReleaseStringUTFChars(jstrExternalFilesDir, strExternalFilesDir);
+        return strExternalFilesDirReturn;
     }
 
     int AndroidHelper::getAndroidSDKVersion(JNIEnv *env) {
@@ -235,8 +428,13 @@ namespace librarybase {
         }
 
         //调用方法创建文件夹
-        jboolean res = env->CallBooleanMethod(fileObj, mkDirsMethod);
-        return (bool) res;
+        if (env->CallBooleanMethod(fileObj, mkDirsMethod) == JNI_TRUE) {
+            return true;
+        } else {
+            return false;
+        }
+//        jboolean res = env->CallBooleanMethod(fileObj, mkDirsMethod);
+//        return (bool) res;
     }
 
     bool AndroidHelper::deleteFile(JNIEnv *env, const char *filePath) {

@@ -18,10 +18,34 @@ namespace librarybase {
         static char *getAndroidPackageName(JNIEnv *env, jobject context);
 
         /**
-         * 获取app的Data目录
+         * 获取app的Data目录，相当于 java Context 类的 getDataDir() 方法
          * @return app的Data目录，char*内存需要外部释放
          */
-        static char *getAndroidDataDir(JNIEnv *env, jobject obj, jobject context);
+        static char *getAndroidDataDir(JNIEnv *env, jobject context);
+
+        /**
+         * 获取app的Cache目录，相当于 java Context 类的 getCacheDir() 方法
+         * @return app的Cache目录，char*内存需要外部释放
+         */
+        static char *getAndroidCacheDir(JNIEnv *env, jobject context);
+
+        /**
+         * 获取app的Files目录，相当于 java Context 类的 getFilesDir() 方法
+         * @return app的Files目录，char*内存需要外部释放
+         */
+        static char *getAndroidFilesDir(JNIEnv *env, jobject context);
+
+        /**
+         * 获取app的外部Cache目录（SD卡下），相当于 java Context 类的 getExternalCacheDir() 方法
+         * @return app的ExternalCache目录，char*内存需要外部释放
+         */
+        static char *getAndroidExternalCacheDir(JNIEnv *env, jobject context);
+
+        /**
+         * 获取app的外部Files目录（SD卡下），相当于 java Context 类的 getExternalFilesDir() 方法
+         * @return app的ExternalFiles目录，char*内存需要外部释放
+         */
+        static char *getAndroidExternalFilesDir(JNIEnv *env, jobject context);
 
         /**
          * 获取当前的安卓sdk版本
