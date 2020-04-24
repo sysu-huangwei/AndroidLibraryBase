@@ -6,11 +6,17 @@ import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 
 import com.example.librarybase.LibraryBase;
 import com.example.librarybase.LibraryBaseTest;
 import com.example.librarybase.soloader.BaseSoLoader;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 import static com.example.librarybase.LibraryBase.BASE_LOG_LEVEL_ALL;
 
@@ -33,6 +39,16 @@ public class MainActivity extends AppCompatActivity {
 //        LibraryBase libraryBase = new LibraryBase();
         LibraryBase.setLogLevel(BASE_LOG_LEVEL_ALL);
         LibraryBase.setContext(this);
+
+
+        AssetManager assetManager = this.getAssets();
+        InputStream inputStream = null;
+        try {
+            inputStream = assetManager.open("风景.jpeg");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
 
         LibraryBaseTest libraryBaseTest = new LibraryBaseTest();
         libraryBaseTest.runTest();
