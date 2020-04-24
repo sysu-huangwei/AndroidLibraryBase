@@ -2,6 +2,7 @@ apply plugin: 'com.android.library'
 
 def Enable_Cmake_BuildAndCopy = readEnableNativeBuildFromLocalProperties()
 def Enable_Debug_Cpp = readEnableDebugCPPFromLocalProperties()
+def CMakeBuildType = getCMakeBuildType()
 def ANDROID_NDK_PATH = readNdkPathFromLocalProperties()
 
 android {
@@ -35,7 +36,8 @@ android {
                 cmake {
                     arguments "-DANDROID_PLATFORM=android-14",
                             "-DANDROID_ARM_NEON=TRUE",
-                            "-DCMAKE_BUILD_TYPE=Release",
+                            "-DCMAKE_BUILD_TYPE="+CMakeBuildType+"",
+//                            "-DCMAKE_BUILD_TYPE=Release",
                             "-DDEBUG_CPP="+Enable_Debug_Cpp+"",
                             "-DANDROID_NDK_PATH="+ANDROID_NDK_PATH+""
                 }
@@ -123,3 +125,12 @@ def readEnableDebugCPPFromLocalProperties() {
     }
     return false
 }
+
+def getCMakeBuildType() {
+    if (readEnableDebugCPPFromLocalProperties()) {
+        return "Debug"
+    } else {
+        return "Release"
+    }
+}
+
