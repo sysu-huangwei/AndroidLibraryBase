@@ -1,6 +1,7 @@
 package com.example.librarybase.nativebitmap;
 
 import android.graphics.Bitmap;
+import android.util.Log;
 
 import androidx.annotation.IntDef;
 
@@ -31,26 +32,23 @@ public class NativeBitmap extends LibraryBase {
 
 
     private long nativeInstance = 0; //底层实例指针，指向底层c++类对象的地址
+    private String mID; //标记当前NativeBitmap对象的名称，比如这个对象是哪里创建的，用来做什么的，防止使用者没有调用recycle导致内存泄露
+    private final String mStackTraceString; //跟踪NativeBitmap对象的创建路径，防止使用者没有调用recycle导致内存泄露
 
     private ReentrantReadWriteLock mReadWriteLock = new ReentrantReadWriteLock();//读写锁，防止多线程同时操作同一个NativeBitmap对象导致问题
 
-    public NativeBitmap() {
+    /**
+     * @param id 标记当前NativeBitmap对象的名称，比如这个对象是哪里创建的，用来做什么的，防止使用者没有调用recycle导致内存泄露
+     */
+    public NativeBitmap(String id) {
         tryRunNativeMethod(new Runnable() {
             @Override
             public void run() {
                 nativeInstance = nativeCreate();
             }
         });
-    }
-
-    /**
-     * 使用Bitmap创建，会自动填充这个Bitmap的图像数据
-     *
-     * @param bitmap Bitmap图像
-     */
-    public NativeBitmap(Bitmap bitmap) {
-        this();
-        setBitmap(bitmap);
+        mID = id;
+        mStackTraceString = Log.getStackTraceString(new Throwable());
     }
 
     /**
@@ -61,6 +59,14 @@ public class NativeBitmap extends LibraryBase {
         nativeRelease(nativeInstance);
         nativeInstance = 0;
         unlockWrite();
+    }
+
+    /**
+     * 底层图像数据是否已经被释放（是否被 recycle() 过）
+     * @return 底层图像数据是否已经被释放
+     */
+    public boolean isRecycled() {
+        return nativeInstance == 0;
     }
 
     /**
@@ -91,8 +97,11 @@ public class NativeBitmap extends LibraryBase {
         mReadWriteLock.writeLock().unlock();
     }
 
-    public NativeBitmap copy() {
-        NativeBitmap nativeBitmapCopy = new NativeBitmap();
+    /**
+     * @param id 标记当前NativeBitmap对象的名称，比如这个对象是哪里创建的，用来做什么的，防止使用者没有调用recycle导致内存泄露
+     */
+    public NativeBitmap copy(String id) {
+        NativeBitmap nativeBitmapCopy = new NativeBitmap(id);
         lockRead();
         nativeBitmapCopy.nativeInstance = nativeCopy(nativeInstance);
         unlockRead();
@@ -238,6 +247,9 @@ public class NativeBitmap extends LibraryBase {
     @Override
     protected void finalize() throws Throwable {
         try {
+            if (!isRecycled()) {
+                Log.e("NativeBitmap", "Error: NativeBitmap is not recycled, id = " + mID + " nativeInstance = " + nativeInstance + " width = " + getWidth() + " height = " + getHeight() + " stackTraceString = " + mStackTraceString);
+            }
             recycle();
         } finally {
             super.finalize();
