@@ -13,6 +13,7 @@ import android.os.Bundle;
 
 import com.example.librarybase.LibraryBase;
 import com.example.librarybase.LibraryBaseTest;
+import com.example.librarybase.nativebitmap.NativeBitmap;
 import com.example.librarybase.soloader.BaseSoLoader;
 
 import java.io.IOException;
@@ -49,6 +50,9 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
         Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+        NativeBitmap nativeBitmap = new NativeBitmap();
+        nativeBitmap.setBitmap(bitmap);
+        Bitmap bitmapCopy = nativeBitmap.toBitmap();
 
         LibraryBaseTest libraryBaseTest = new LibraryBaseTest();
         libraryBaseTest.runTest();
