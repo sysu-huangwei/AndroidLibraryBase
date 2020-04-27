@@ -79,9 +79,9 @@ namespace librarybase {
             this->width = width;
             this->height = height;
             this->colorSpace = colorSpace;
-            int pixelsCount =
-                    width * height * (colorSpace == NativeBitmapColorSpace_RGBA ? 4 : 1);
-            memcpy(this->pixels, pixels, sizeof(unsigned char) * pixelsCount);
+            int length = getPixelsArrayLength();
+            this->pixels = new unsigned char[length];
+            memcpy(this->pixels, pixels, sizeof(unsigned char) * length);
         }
     }
 
