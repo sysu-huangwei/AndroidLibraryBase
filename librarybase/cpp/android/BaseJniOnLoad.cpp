@@ -4,6 +4,7 @@
 #include "JniHelper.h"
 #include "LibraryBaseJni.h"
 #include "LibraryBaseTestJni.h"
+#include "NativeBitmapJni.h"
 
 using namespace librarybase;
 
@@ -27,6 +28,11 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved) {
 
     if (registerLibraryBaseTestNativeMethods(env, reserved) == JNI_ERR) {
         LOGE("failed to registerLibraryBaseTestNativeMethods");
+        return JNI_ERR;
+    }
+
+    if (registerNativeBitmapNativeMethods(env, reserved) == JNI_ERR) {
+        LOGE("failed to registerNativeBitmapNativeMethods");
         return JNI_ERR;
     }
 

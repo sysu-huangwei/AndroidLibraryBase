@@ -18,7 +18,7 @@
 #define PLATFORM_UNKNOWN 1
 #endif
 
-
+#include <stdio.h>
 #ifndef SAFE_DELETE
 #define SAFE_DELETE(x) { if (x) delete (x); (x) = NULL; }
 #endif
