@@ -40,7 +40,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/${ANDROID_ABI})
 include_directories(
         ${3rdBinarys_DIR}
         ${SourceCode_DIR}
-        ${SourceCode_DIR}/log
+        ${SourceCode_DIR}/common
         ${AndroidCode_DIR}
         ${AndroidCode_DIR}/librarybase
         ${AndroidCode_DIR}/utils
@@ -52,7 +52,7 @@ include_directories(
 file(
         GLOB SOURCE_FILES
         ${SourceCode_DIR}/*.cpp
-        ${SourceCode_DIR}/log/*.cpp
+        ${SourceCode_DIR}/common/*.cpp
         ${AndroidCode_DIR}/*.cpp
         ${AndroidCode_DIR}/librarybase/*.cpp
         ${AndroidCode_DIR}/utils/*.cpp
