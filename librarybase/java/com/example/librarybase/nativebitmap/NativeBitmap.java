@@ -32,7 +32,7 @@ public class NativeBitmap extends LibraryBase {
 
 
     private long nativeInstance = 0; //底层实例指针，指向底层c++类对象的地址
-    private String mID; //标记当前NativeBitmap对象的名称，比如这个对象是哪里创建的，用来做什么的，防止使用者没有调用recycle导致内存泄露
+    private final String mID; //标记当前NativeBitmap对象的名称，比如这个对象是哪里创建的，用来做什么的，防止使用者没有调用recycle导致内存泄露
     private final String mStackTraceString; //跟踪NativeBitmap对象的创建路径，防止使用者没有调用recycle导致内存泄露
 
     private ReentrantReadWriteLock mReadWriteLock = new ReentrantReadWriteLock();//读写锁，防止多线程同时操作同一个NativeBitmap对象导致问题
