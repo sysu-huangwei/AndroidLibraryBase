@@ -39,7 +39,7 @@ namespace librarybase {
         // 创建 Bitmap 对象
         jclass bitmapClass = env->FindClass("android/graphics/Bitmap");
         jmethodID createBitmapMethod = env->GetStaticMethodID(bitmapClass, "createBitmap",
-                                                              "(IILandroid/graphics/Bitmap/Config;)Landroid/graphics/Bitmap;");
+                                                              "(IILandroid/graphics/Bitmap$Config;)Landroid/graphics/Bitmap;");
         jobject bitmapObject = env->CallStaticObjectMethod(bitmapClass, createBitmapMethod, width,
                                                            height, bitmapConfigObject);
 
