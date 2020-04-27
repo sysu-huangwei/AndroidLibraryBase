@@ -9,6 +9,7 @@ import com.example.librarybase.LibraryBase;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.nio.ByteBuffer;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * User: HW
@@ -30,6 +31,8 @@ public class NativeBitmap extends LibraryBase {
 
 
     private long nativeInstance = 0; //底层实例指针，指向底层c++类对象的地址
+
+    private ReentrantReadWriteLock mReadWriteLock = new ReentrantReadWriteLock();//读写锁，防止多线程同时操作同一个NativeBitmap对象导致问题
 
     public NativeBitmap() {
         tryRunNativeMethod(new Runnable() {
@@ -54,13 +57,45 @@ public class NativeBitmap extends LibraryBase {
      * 外部在使用完NativeBitmap的时候要马上调用这个接口释放底层内存，有的机子可能不会调用finalize导致内存泄漏
      */
     public void recycle() {
+        lockWrite();
         nativeRelease(nativeInstance);
         nativeInstance = 0;
+        unlockWrite();
+    }
+
+    /**
+     * 读锁，在需要获取底层像素数据（不需要改变）的时候需要先lock住
+     */
+    public void lockRead() {
+        mReadWriteLock.readLock().lock();
+    }
+
+    /**
+     * 与 lockRead 配对使用
+     */
+    public void unlockRead() {
+        mReadWriteLock.readLock().unlock();
+    }
+
+    /**
+     * 写锁，在需要改变底层像素内容时，需要先lock住
+     */
+    public void lockWrite() {
+        mReadWriteLock.writeLock().lock();
+    }
+
+    /**
+     * 与 lockWrite 配对使用
+     */
+    public void unlockWrite() {
+        mReadWriteLock.writeLock().unlock();
     }
 
     public NativeBitmap copy() {
         NativeBitmap nativeBitmapCopy = new NativeBitmap();
+        lockRead();
         nativeBitmapCopy.nativeInstance = nativeCopy(nativeInstance);
+        unlockRead();
         return nativeBitmapCopy;
     }
 
@@ -107,7 +142,10 @@ public class NativeBitmap extends LibraryBase {
      * @return 拷贝的图像像素数据
      */
     public byte[] getByteArrayCopy() {
-        return nativeGetByteArrayCopy(nativeInstance);
+        lockRead();
+        byte[] byteArrayCopy = nativeGetByteArrayCopy(nativeInstance);
+        unlockRead();
+        return byteArrayCopy;
     }
 
     /**
@@ -116,7 +154,10 @@ public class NativeBitmap extends LibraryBase {
      * @return 拷贝的图像像素数据
      */
     public ByteBuffer getByteBufferCopy() {
-        return nativeGetByteBufferCopy(nativeInstance);
+        lockRead();
+        ByteBuffer byteBufferCopy = nativeGetByteBufferCopy(nativeInstance);
+        unlockRead();
+        return byteBufferCopy;
     }
 
     /**
@@ -125,7 +166,10 @@ public class NativeBitmap extends LibraryBase {
      * @return Bitmap图象
      */
     public Bitmap toBitmap() {
-        return nativeToBitmap(nativeInstance);
+        lockRead();
+        Bitmap bitmap = nativeToBitmap(nativeInstance);
+        unlockRead();
+        return bitmap;
     }
 
     /**
@@ -134,7 +178,10 @@ public class NativeBitmap extends LibraryBase {
      * @return RGBA格式的Bitmap图像
      */
     public Bitmap toRGBABitmap() {
-        return nativeToRGBABitmap(nativeInstance);
+        lockRead();
+        Bitmap bitmap = nativeToRGBABitmap(nativeInstance);
+        unlockRead();
+        return bitmap;
     }
 
     /**
@@ -143,7 +190,10 @@ public class NativeBitmap extends LibraryBase {
      * @return GRAY格式的Bitmap图像
      */
     public Bitmap toAlphaBitmap() {
-        return nativeToAlphaBitmap(nativeInstance);
+        lockRead();
+        Bitmap bitmap = nativeToAlphaBitmap(nativeInstance);
+        unlockRead();
+        return bitmap;
     }
 
     /**
@@ -152,7 +202,9 @@ public class NativeBitmap extends LibraryBase {
      * @param bitmap 外部Bitmap图像
      */
     public void setBitmap(Bitmap bitmap) {
+        lockWrite();
         nativeSetBitmap(nativeInstance, bitmap);
+        unlockWrite();
     }
 
     /**
@@ -164,7 +216,9 @@ public class NativeBitmap extends LibraryBase {
      * @param colorSpace 颜色空间
      */
     public void setByteArray(byte[] bytes, int width, int height, @NativeBitmapColorSpace int colorSpace) {
+        lockWrite();
         nativeSetByteArray(nativeInstance, bytes, width, height, colorSpace);
+        unlockWrite();
     }
 
     /**
@@ -176,7 +230,9 @@ public class NativeBitmap extends LibraryBase {
      * @param colorSpace 颜色空间
      */
     public void setByteBuffer(ByteBuffer byteBuffer, int width, int height, @NativeBitmapColorSpace int colorSpace) {
+        lockWrite();
         nativeSetByteBuffer(nativeInstance, byteBuffer, width, height, colorSpace);
+        unlockWrite();
     }
 
     @Override
