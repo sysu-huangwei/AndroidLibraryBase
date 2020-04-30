@@ -1,4 +1,4 @@
-package com.example.librarybase.glutils;
+package com.example.librarybase.opengl;
 
 import android.graphics.Bitmap;
 import android.opengl.GLES11Ext;
@@ -21,9 +21,9 @@ import static android.opengl.GLES20.GL_UNSIGNED_BYTE;
  * Date: 2020/4/29
  * Description: OpenGLES2.0 常用方法
  */
-public class GLUtils {
+public class BaseGLUtils {
 
-    private static final String TAG = "GLUtils";
+    private static final String TAG = "BaseGLUtils";
 
     /**
      * 着色器类型。
@@ -153,6 +153,29 @@ public class GLUtils {
      */
     public static int createExternalOESTextures() {
         return createTextures(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_CLAMP_TO_EDGE, GLES20.GL_LINEAR);
+    }
+
+    /**
+     * 通过 ByteBuffer 图像数据创建 2D 纹理
+     */
+    public static int createTextures2DWithBitmap(@NonNull Bitmap bitmap, @GLFormat int glformat) {
+        if (bitmap.isRecycled()) {
+            return 0;
+        }
+        int texture = createTextures2D();
+        try {
+            if (glformat == GLES20.GL_LUMINANCE) {
+                GLES20.glPixelStorei(GLES20.GL_UNPACK_ALIGNMENT, 1);
+                android.opengl.GLUtils.texImage2D(GL_TEXTURE_2D, 0, glformat, bitmap, GL_UNSIGNED_BYTE, 0);
+                GLES20.glPixelStorei(GLES20.GL_UNPACK_ALIGNMENT, 4);
+            } else {
+                android.opengl.GLUtils.texImage2D(GL_TEXTURE_2D, 0, glformat, bitmap, GL_UNSIGNED_BYTE, 0);
+            }
+        } catch (Exception e) {
+            return 0;
+        }
+
+        return texture;
     }
 
     /**
