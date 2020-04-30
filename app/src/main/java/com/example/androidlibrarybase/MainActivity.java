@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onSurfaceChanged(GL10 gl, int width, int height) {
-                mBase2DTexturePainter.viewPort(0, 0, width, height);
+                mBase2DTexturePainter.viewport(0, 0, width, height);
             }
 
             @Override
