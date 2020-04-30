@@ -36,21 +36,7 @@ public class Base2DTexturePainter {
             0f, 0f, 0f, 1f,
     };
 
-    // 正交矩阵，把 OpenGL 的 [-1, 1] 坐标，映射到真实的屏幕尺寸上
-    private final float[] mViewportOrthogonalMatrix = {
-            1f, 0f, 0f, 0f,
-            0f, 1f, 0f, 0f,
-            0f, 0f, 1f, 0f,
-            0f, 0f, 0f, 1f,
-    };
-
-    // 正交矩阵，把纹理的尺寸，映射到 OpenGL 的 [-1, 1] 坐标上
-    private final float[] mTextureOrthogonalMatrix = {
-            1f, 0f, 0f, 0f,
-            0f, 1f, 0f, 0f,
-            0f, 0f, 1f, 0f,
-            0f, 0f, 0f, 1f,
-    };
+    private float mViewportWidthHeightRatio = 1f; // viewport的宽高比
 
     // float[]转FloatBuffer
     private final FloatBuffer mImageVerticesBuffer = BaseGLUtils.floatArrayToFloatBuffer(mImageVertices);
@@ -117,15 +103,9 @@ public class Base2DTexturePainter {
     /**
      * 设置视图尺寸
      */
-    public void viewPort(int x, int y, int width, int height) {
+    public void viewport(int x, int y, int width, int height) {
         GLES20.glViewport(x, y, width, height);
-        // 把 OpenGL 的 [-1, 1] 坐标，映射到真实的屏幕尺寸上，这样绘制不会被拉伸变形
-        float aspectRatio = width > height ? (float) width / (float) height : (float) height / (float) width;
-        if (width > height) {
-            android.opengl.Matrix.orthoM(mViewportOrthogonalMatrix, 0, -aspectRatio, aspectRatio, -1f, 1f, -1f, 1f);
-        } else {
-            android.opengl.Matrix.orthoM(mViewportOrthogonalMatrix, 0, -1f, 1f, -aspectRatio, aspectRatio, -1f, 1f);
-        }
+        mViewportWidthHeightRatio = (float) width / (float) height;
     }
 
     /**
@@ -156,7 +136,7 @@ public class Base2DTexturePainter {
         GLES20.glVertexAttribPointer(mTextureCoordinateAttribute, mCoordinatesCountPerVertex, GLES20.GL_FLOAT, false, vertexStride, mTextureCoordinatesBuffer);
 
         // 计算和传入变换矩阵
-        getTextureMatric(mMvpMatrix, mViewportOrthogonalMatrix, mTextureOrthogonalMatrix, inputTextureWidth, inputTextureHeight);
+        getMvpMatrix(mMvpMatrix, mViewportWidthHeightRatio, inputTextureWidth, inputTextureHeight);
         GLES20.glUniformMatrix4fv(mMvpMatrixUniform, 1, false, mMvpMatrix, 0);
 
         // 绘制
@@ -167,21 +147,20 @@ public class Base2DTexturePainter {
     }
 
     /**
-     * 由viewport矩阵和纹理尺寸，计算最终的mvp矩阵
+     * 把纹理尺寸映射到viewport区域内，使画出来的纹理不被拉伸变形
      * @param mvpMatrix out 最终的mvp矩阵结果
-     * @param viewportOrthogonalMatrix in viewport正交矩阵
-     * @param textureOrthogonalMatrix in 纹理正交矩阵
+     * @param viewportWidthHeightRatio in viewport的宽高比
      * @param textureWidth in 纹理宽
      * @param textureHeight in 纹理高
      */
-    private static void getTextureMatric(float[] mvpMatrix, float[] viewportOrthogonalMatrix, float[] textureOrthogonalMatrix, int textureWidth, int textureHeight) {
-        float textureAspectRatio = textureWidth > textureHeight ? (float) textureWidth / (float) textureHeight : (float) textureHeight / (float) textureWidth;
-        if (textureWidth < textureHeight) {
-            android.opengl.Matrix.orthoM(textureOrthogonalMatrix, 0, -textureAspectRatio, textureAspectRatio, -1f, 1f, -1f, 1f);
+    private static void getMvpMatrix(float[] mvpMatrix, float viewportWidthHeightRatio, int textureWidth, int textureHeight) {
+        float textureWidthHeightRatio = (float) textureWidth / (float) textureHeight;
+        float ratio = viewportWidthHeightRatio / textureWidthHeightRatio;
+        if (ratio > 1f) {
+            android.opengl.Matrix.orthoM(mvpMatrix, 0, -ratio, ratio, -1f, 1f, -1f, 1f);
         } else {
-            android.opengl.Matrix.orthoM(textureOrthogonalMatrix, 0, -1f, 1f, -textureAspectRatio, textureAspectRatio, -1f, 1f);
+            android.opengl.Matrix.orthoM(mvpMatrix, 0, -1f, 1f, -1.0f / ratio, 1.0f / ratio, -1f, 1f);
         }
-        android.opengl.Matrix.multiplyMM(mvpMatrix, 0, textureOrthogonalMatrix, 0, viewportOrthogonalMatrix, 0);
     }
 
 }
