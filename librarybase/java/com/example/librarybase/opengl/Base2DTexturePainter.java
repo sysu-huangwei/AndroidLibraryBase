@@ -1,5 +1,6 @@
 package com.example.librarybase.opengl;
 
+import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 
 import java.nio.FloatBuffer;
@@ -52,6 +53,8 @@ public class Base2DTexturePainter {
     private int mMvpMatrixUniform; // 变换矩阵位置
     private int mTextureUniform; // 纹理采样器位置
 
+    private boolean mIsOES = false; // 是否是OES纹理
+
     private final String base2DVertexShaderString = ""
             + "attribute vec4 position;\n"
             + "attribute vec4 inputTextureCoordinate;\n"
@@ -72,13 +75,37 @@ public class Base2DTexturePainter {
             + "    gl_FragColor = texture2D(inputImageTexture, textureCoordinate);\n"
             + "}\n";
 
+    private final String baseOES2DFragmentShaderString = ""
+            + "#extension GL_OES_EGL_image_external : require\n"
+            + "precision highp float;\n"
+            + "varying vec2 textureCoordinate;\n"
+            + "uniform samplerExternalOES inputImageTexture;\n"
+            + "void main()\n"
+            + "{\n"
+            + "    gl_FragColor = texture2D(inputImageTexture, textureCoordinate);\n"
+            + "}\n";
+
+
+    /**
+     * 初始化，必须在GL线程，默认画2D纹理
+     */
+    public void init() {
+        init(false);
+    }
 
     /**
      * 初始化，必须在GL线程
+     *
+     * @param isOES 是否画OES纹理，否则画2D纹理
      */
-    public void init() {
+    public void init(boolean isOES) {
+        mIsOES = isOES;
         // 创建着色器程序
-        mProgram = BaseGLUtils.createProgram(base2DVertexShaderString, base2DFragmentShaderString);
+        if (isOES) {
+            mProgram = BaseGLUtils.createProgram(base2DVertexShaderString, baseOES2DFragmentShaderString);
+        } else {
+            mProgram = BaseGLUtils.createProgram(base2DVertexShaderString, base2DFragmentShaderString);
+        }
         if (mProgram > 0) {
             // 获取顶点坐标位置
             mPositionAttribute = GLES20.glGetAttribLocation(mProgram, "position");
@@ -124,7 +151,11 @@ public class Base2DTexturePainter {
 
         // 传入纹理
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, inputTexture);
+        if (mIsOES) {
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, inputTexture);
+        } else {
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, inputTexture);
+        }
         GLES20.glUniform1i(mTextureUniform, 0);
 
         // 传入顶点位置
