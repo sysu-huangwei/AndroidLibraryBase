@@ -12,12 +12,16 @@ import java.util.List;
  * Date: 2020/5/7
  * Description: 相机逻辑封装
  */
-public class BaseCamera {
+public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
 
     private Camera mCamera = null; // 相机实例
     private int mPreviewWidth = 0; // 预览宽
     private int mPreviewHeight = 0; // 预览高
+    private int mFrontCameraID = 0; // 前置相机ID
+    private int mBackCameraID = 0; // 后置相机ID
     private int mFacing = Camera.CameraInfo.CAMERA_FACING_FRONT; // 当前相机朝向， 0：后置  1：前置
+
+    private boolean isNeedSwitchCameraFacing = false; // 是否需要切换前后置摄像头，避免和绘制异步导致效果问题
 
     private SurfaceTexture mSurfaceTexture = null; // 获取相机的图像流
     private int mSurfaceTextureID = 0; // 获取相机的图像流纹理ID，与mSurfaceTexture绑定
@@ -31,32 +35,45 @@ public class BaseCamera {
 
 
     /**
-     * 初始化相机，必须在GL线程
+     * 初始化，必须在GL线程
      */
     public void init() {
         mBase2DTexturePainter.init(true);
 
         mSurfaceTextureID = BaseGLUtils.createExternalOESTextures();
         mSurfaceTexture = new SurfaceTexture(mSurfaceTextureID);
-        mSurfaceTexture.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
-            @Override
-            public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-                if (mBaseCameraCallback != null) {
-                    mBaseCameraCallback.onFrameAvailable();
-                }
-            }
-        });
+        mSurfaceTexture.setOnFrameAvailableListener(this);
 
+        initCamera();
+        setupCamera();
+
+        mOutputTexture = BaseGLUtils.createTextures2D();
+        mOutputFrameBuffer = BaseGLUtils.createFBO(mOutputTexture, mPreviewWidth, mPreviewHeight);
+    }
+
+    /**
+     * 初始化相机
+     */
+    private void initCamera() {
         int cameraCount = Camera.getNumberOfCameras();
         Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
         for (int i = 0; i < cameraCount; i++) {
             Camera.getCameraInfo(i, cameraInfo);
-            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                mCamera = Camera.open(i);
-                mFacing = Camera.CameraInfo.CAMERA_FACING_BACK;
+            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                mFrontCameraID = i;
+            } else if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                mBackCameraID = i;
             }
         }
 
+        mCamera = Camera.open(mBackCameraID);
+        mFacing = Camera.CameraInfo.CAMERA_FACING_BACK;
+    }
+
+    /**
+     * 配置相机
+     */
+    private void setupCamera() {
         if (mCamera != null) {
             Camera.Parameters parameters = mCamera.getParameters();
 
@@ -81,9 +98,6 @@ public class BaseCamera {
                 e.printStackTrace();
             }
         }
-
-        mOutputTexture = BaseGLUtils.createTextures2D();
-        mOutputFrameBuffer = BaseGLUtils.createFBO(mOutputTexture, mPreviewWidth, mPreviewHeight);
     }
 
     /**
@@ -105,12 +119,48 @@ public class BaseCamera {
     }
 
     /**
+     * 切换前后置摄像头
+     */
+    public void switchCameraFacing() {
+        isNeedSwitchCameraFacing = true;
+
+        int nextFacing = 1 - mFacing; // 计算需要打开前置还是后置
+
+        // 先停止当前的预览并释放相机
+        mCamera.stopPreview();
+        mCamera.release();
+        mCamera = null;
+
+        // 打开新的方向的相机
+        if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            mCamera = Camera.open(mBackCameraID);
+        } else {
+            mCamera = Camera.open(mFrontCameraID);
+        }
+
+        // 配置相机
+        setupCamera();
+
+        //开始预览
+        mCamera.startPreview();
+
+        mFacing = nextFacing;
+    }
+
+    /**
      * 设置相机事件回调
      *
      * @param baseCameraCallback 相机事件回调
      */
     public void setBaseCameraCallback(BaseCameraCallback baseCameraCallback) {
         mBaseCameraCallback = baseCameraCallback;
+    }
+
+    @Override
+    public void onFrameAvailable(SurfaceTexture surfaceTexture) {
+        if (mBaseCameraCallback != null) {
+            mBaseCameraCallback.onFrameAvailable();
+        }
     }
 
     /**
@@ -151,16 +201,13 @@ public class BaseCamera {
      * @return 相机当前帧数据的2D纹理
      */
     public int render() {
-        if (mBase2DTexturePainter != null) {
-            mSurfaceTexture.updateTexImage();
-            if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 6);
-            } else if (mFacing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 7);
-            }
-            return mOutputTexture;
+        mSurfaceTexture.updateTexImage();
+        if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 6);
+        } else if (mFacing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+            mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 7);
         }
-        return 0;
+        return mOutputTexture;
     }
 
 
