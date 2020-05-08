@@ -9,25 +9,22 @@ import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.view.SurfaceHolder;
 
 import com.example.librarybase.LibraryBase;
 import com.example.librarybase.LibraryBaseTest;
 import com.example.librarybase.opengl.Base2DTexturePainter;
-import com.example.librarybase.opengl.BaseGLUtils;
+import com.example.librarybase.opengl.BaseCamera;
 import com.example.librarybase.soloader.BaseSoLoader;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.FloatBuffer;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-import static android.opengl.GLES20.GL_COLOR_BUFFER_BIT;
-import static android.opengl.GLES20.GL_DEPTH_BUFFER_BIT;
 import static com.example.librarybase.LibraryBase.BASE_LOG_LEVEL_ALL;
 
 public class MainActivity extends AppCompatActivity {
@@ -44,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
 
     private GLSurfaceView mGLSurfaceView;
 
+    private BaseCamera mBaseCamera = new BaseCamera();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,7 +76,8 @@ public class MainActivity extends AppCompatActivity {
         mGLSurfaceView.setRenderer(new GLSurfaceView.Renderer() {
             @Override
             public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-                mTexture = BaseGLUtils.createTextures2DWithBitmap(mBitmap, GLES20.GL_RGBA);
+                mBaseCamera.init();
+                mBaseCamera.startPreview();
                 mBase2DTexturePainter.init();
             }
 
@@ -89,14 +88,34 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onDrawFrame(GL10 gl) {
-                mBase2DTexturePainter.render(mTexture, mBitmap.getWidth(), mBitmap.getHeight());
+                int cameraOutputTexture = mBaseCamera.render();
+                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getPreviewSize().width, mBaseCamera.getPreviewSize().height);
             }
         });
 
-        mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+        mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
 
-        mGLSurfaceView.requestRender();
+        mGLSurfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(SurfaceHolder holder) { }
 
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) { }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+                mBase2DTexturePainter.release();
+                mBaseCamera.stopPreview();
+                mBaseCamera.release();
+            }
+        });
+
+        mBaseCamera.setBaseCameraCallback(new BaseCamera.BaseCameraCallback() {
+            @Override
+            public void onFrameAvailable() {
+                mGLSurfaceView.requestRender();
+            }
+        });
 
     }
 
