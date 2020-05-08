@@ -178,6 +178,23 @@ public class Base2DTexturePainter {
     }
 
     /**
+     * 绘制到FBO
+     * @param inputTexture 输入纹理
+     * @param outputTexture 输出的纹理
+     * @param outputFrameBuffer 输出的FBO
+     * @param inputTextureWidth 输入纹理的宽
+     * @param inputTextureHeight 输入纹理的高
+     */
+    public void renderToFBO(int inputTexture, int outputTexture, int outputFrameBuffer, int inputTextureWidth, int inputTextureHeight) {
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBuffer);
+        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outputTexture, 0);
+
+        render(inputTexture, inputTextureWidth, inputTextureHeight);
+
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_NONE);
+    }
+
+    /**
      * 把纹理尺寸映射到viewport区域内，使画出来的纹理不被拉伸变形
      * @param mvpMatrix out 最终的mvp矩阵结果
      * @param viewportWidthHeightRatio in viewport的宽高比
