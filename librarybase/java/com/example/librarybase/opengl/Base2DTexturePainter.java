@@ -65,8 +65,8 @@ public class Base2DTexturePainter {
     private final float mImageVertices7[] = {
             -1f, -1f, // bottom left
             -1f, 1f, // top left
-            1f, 1f,  // top right
             1f, -1f, // bottom right
+            1f, 1f,  // top right
     };
     private final float mImageVertices8[] = {
             1f, -1f, // bottom right
