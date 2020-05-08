@@ -93,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDrawFrame(GL10 gl) {
                 int cameraOutputTexture = mBaseCamera.render();
-                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getPreviewSize().width, mBaseCamera.getPreviewSize().height, surfaceWidth, surfaceHeight);
+                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getPreviewWidth(), mBaseCamera.getPreviewHeight(), surfaceWidth, surfaceHeight);
             }
         });
 

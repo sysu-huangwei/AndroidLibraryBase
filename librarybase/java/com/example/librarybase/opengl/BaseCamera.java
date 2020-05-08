@@ -15,7 +15,8 @@ import java.util.List;
 public class BaseCamera {
 
     private Camera mCamera = null; // 相机实例
-    private Camera.Size mPreviewSize = null; // 当前预览尺寸
+    private int mPreviewWidth = 0; // 预览宽
+    private int mPreviewHeight = 0; // 预览高
 
     private SurfaceTexture mSurfaceTexture = null; // 获取相机的图像流
     private int mSurfaceTextureID = 0; // 获取相机的图像流纹理ID，与mSurfaceTexture绑定
@@ -60,7 +61,9 @@ public class BaseCamera {
             List<Camera.Size> previewSizes = parameters.getSupportedPreviewSizes();
             if (previewSizes.size() > 0) {
                 parameters.setPreviewSize(previewSizes.get(0).width, previewSizes.get(0).height);
-                mPreviewSize = previewSizes.get(0);
+                //交换宽高，因为相机获取的尺寸永远都是宽>高
+                mPreviewWidth = previewSizes.get(0).height;
+                mPreviewHeight = previewSizes.get(0).width;
             }
 
             List<Camera.Size> pictureSizes = parameters.getSupportedPictureSizes();
@@ -78,7 +81,7 @@ public class BaseCamera {
         }
 
         mOutputTexture = BaseGLUtils.createTextures2D();
-        mOutputFrameBuffer = BaseGLUtils.createFBO(mOutputTexture, mPreviewSize.width, mPreviewSize.height);
+        mOutputFrameBuffer = BaseGLUtils.createFBO(mOutputTexture, mPreviewWidth, mPreviewHeight);
     }
 
     /**
@@ -109,12 +112,21 @@ public class BaseCamera {
     }
 
     /**
-     * 获取当前预览尺寸
+     * 获取当前预览尺寸宽
      *
-     * @return 当前预览尺寸
+     * @return 当前预览尺寸宽
      */
-    public Camera.Size getPreviewSize() {
-        return mPreviewSize;
+    public int getPreviewWidth() {
+        return mPreviewWidth;
+    }
+
+    /**
+     * 获取当前预览尺寸高
+     *
+     * @return 当前预览尺寸高
+     */
+    public int getPreviewHeight() {
+        return mPreviewHeight;
     }
 
     /**
@@ -139,7 +151,7 @@ public class BaseCamera {
     public int render() {
         if (mBase2DTexturePainter != null) {
             mSurfaceTexture.updateTexImage();
-            mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewSize.width, mPreviewSize.height, mOutputTexture, mOutputFrameBuffer, mPreviewSize.width, mPreviewSize.height);
+            mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 6);
             return mOutputTexture;
         }
         return 0;
