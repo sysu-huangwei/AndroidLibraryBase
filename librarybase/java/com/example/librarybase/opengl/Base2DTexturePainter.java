@@ -37,8 +37,6 @@ public class Base2DTexturePainter {
             0f, 0f, 0f, 1f,
     };
 
-    private float mViewportWidthHeightRatio = 1f; // viewport的宽高比
-
     // float[]转FloatBuffer
     private final FloatBuffer mImageVerticesBuffer = BaseGLUtils.floatArrayToFloatBuffer(mImageVertices);
     private final FloatBuffer mTextureCoordinatesBuffer = BaseGLUtils.floatArrayToFloatBuffer(mTextureCoordinates);
@@ -128,20 +126,17 @@ public class Base2DTexturePainter {
     }
 
     /**
-     * 设置视图尺寸
-     */
-    public void viewport(int x, int y, int width, int height) {
-        GLES20.glViewport(x, y, width, height);
-        mViewportWidthHeightRatio = (float) width / (float) height;
-    }
-
-    /**
      * 绘制到屏幕
      * @param inputTexture 输入纹理
      * @param inputTextureWidth 输入纹理的宽
      * @param inputTextureHeight 输入纹理的高
+     * @param outputWidth 输出的纹理宽
+     * @param outputHeight 输出的纹理高
      */
-    public void render(int inputTexture, int inputTextureWidth, int inputTextureHeight) {
+    public void render(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputWidth, int outputHeight) {
+
+        GLES20.glViewport(0, 0, outputWidth, outputHeight);
+
         // 清屏
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
         GLES20.glClearColor(0.0f,0.0f,0.0f,1.0f);
@@ -167,7 +162,7 @@ public class Base2DTexturePainter {
         GLES20.glVertexAttribPointer(mTextureCoordinateAttribute, mCoordinatesCountPerVertex, GLES20.GL_FLOAT, false, vertexStride, mTextureCoordinatesBuffer);
 
         // 计算和传入变换矩阵
-        getMvpMatrix(mMvpMatrix, mViewportWidthHeightRatio, inputTextureWidth, inputTextureHeight);
+        getMvpMatrix(mMvpMatrix, (float) outputWidth / (float) outputHeight, inputTextureWidth, inputTextureHeight);
         GLES20.glUniformMatrix4fv(mMvpMatrixUniform, 1, false, mMvpMatrix, 0);
 
         // 绘制
@@ -180,16 +175,18 @@ public class Base2DTexturePainter {
     /**
      * 绘制到FBO
      * @param inputTexture 输入纹理
-     * @param outputTexture 输出的纹理
-     * @param outputFrameBuffer 输出的FBO
      * @param inputTextureWidth 输入纹理的宽
      * @param inputTextureHeight 输入纹理的高
+     * @param outputTexture 输出的纹理
+     * @param outputFrameBuffer 输出的FBO
+     * @param outputWidth 输出的纹理宽
+     * @param outputHeight 输出的纹理高
      */
-    public void renderToFBO(int inputTexture, int outputTexture, int outputFrameBuffer, int inputTextureWidth, int inputTextureHeight) {
+    public void renderToFBO(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputTexture, int outputFrameBuffer, int outputWidth, int outputHeight) {
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBuffer);
         GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outputTexture, 0);
 
-        render(inputTexture, inputTextureWidth, inputTextureHeight);
+        render(inputTexture, inputTextureWidth, inputTextureHeight, outputWidth, outputHeight);
 
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_NONE);
     }

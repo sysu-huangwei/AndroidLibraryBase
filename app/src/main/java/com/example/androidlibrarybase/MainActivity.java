@@ -43,6 +43,9 @@ public class MainActivity extends AppCompatActivity {
 
     private BaseCamera mBaseCamera = new BaseCamera();
 
+    private int surfaceWidth = 0;
+    private int surfaceHeight = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,13 +86,14 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onSurfaceChanged(GL10 gl, int width, int height) {
-                mBase2DTexturePainter.viewport(0, 0, width, height);
+                surfaceWidth = width;
+                surfaceHeight = height;
             }
 
             @Override
             public void onDrawFrame(GL10 gl) {
                 int cameraOutputTexture = mBaseCamera.render();
-                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getPreviewSize().width, mBaseCamera.getPreviewSize().height);
+                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getPreviewSize().width, mBaseCamera.getPreviewSize().height, surfaceWidth, surfaceHeight);
             }
         });
 

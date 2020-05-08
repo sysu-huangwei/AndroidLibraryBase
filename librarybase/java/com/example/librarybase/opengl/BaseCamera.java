@@ -139,7 +139,7 @@ public class BaseCamera {
     public int render() {
         if (mBase2DTexturePainter != null) {
             mSurfaceTexture.updateTexImage();
-            mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mOutputTexture, mOutputFrameBuffer, mPreviewSize.width, mPreviewSize.height);
+            mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewSize.width, mPreviewSize.height, mOutputTexture, mOutputFrameBuffer, mPreviewSize.width, mPreviewSize.height);
             return mOutputTexture;
         }
         return 0;
