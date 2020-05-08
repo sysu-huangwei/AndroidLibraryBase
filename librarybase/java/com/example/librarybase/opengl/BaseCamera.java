@@ -17,6 +17,7 @@ public class BaseCamera {
     private Camera mCamera = null; // 相机实例
     private int mPreviewWidth = 0; // 预览宽
     private int mPreviewHeight = 0; // 预览高
+    private int mFacing = Camera.CameraInfo.CAMERA_FACING_FRONT; // 当前相机朝向， 0：后置  1：前置
 
     private SurfaceTexture mSurfaceTexture = null; // 获取相机的图像流
     private int mSurfaceTextureID = 0; // 获取相机的图像流纹理ID，与mSurfaceTexture绑定
@@ -50,8 +51,9 @@ public class BaseCamera {
         Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
         for (int i = 0; i < cameraCount; i++) {
             Camera.getCameraInfo(i, cameraInfo);
-            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
                 mCamera = Camera.open(i);
+                mFacing = Camera.CameraInfo.CAMERA_FACING_BACK;
             }
         }
 
@@ -151,7 +153,11 @@ public class BaseCamera {
     public int render() {
         if (mBase2DTexturePainter != null) {
             mSurfaceTexture.updateTexImage();
-            mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 6);
+            if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 6);
+            } else if (mFacing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 7);
+            }
             return mOutputTexture;
         }
         return 0;
