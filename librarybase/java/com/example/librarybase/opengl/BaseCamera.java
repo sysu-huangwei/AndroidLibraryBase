@@ -21,7 +21,7 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
     private int mBackCameraID = 0; // 后置相机ID
     private int mFacing = Camera.CameraInfo.CAMERA_FACING_FRONT; // 当前相机朝向， 0：后置  1：前置
 
-    private boolean isNeedSwitchCameraFacing = false; // 是否需要切换前后置摄像头，避免和绘制异步导致效果问题
+    private volatile boolean mIsWaitingRender = false; // 是否正在等待渲染，必须要发出onFrameAvailable之后才是要渲染的
 
     private SurfaceTexture mSurfaceTexture = null; // 获取相机的图像流
     private int mSurfaceTextureID = 0; // 获取相机的图像流纹理ID，与mSurfaceTexture绑定
@@ -94,6 +94,7 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
 
             try {
                 mCamera.setPreviewTexture(mSurfaceTexture);
+                mSurfaceTexture.updateTexImage();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -122,9 +123,7 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
      * 切换前后置摄像头
      */
     public void switchCameraFacing() {
-        isNeedSwitchCameraFacing = true;
-
-        int nextFacing = 1 - mFacing; // 计算需要打开前置还是后置
+        mIsWaitingRender = false;
 
         // 先停止当前的预览并释放相机
         mCamera.stopPreview();
@@ -134,8 +133,10 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
         // 打开新的方向的相机
         if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
             mCamera = Camera.open(mBackCameraID);
+            mFacing = Camera.CameraInfo.CAMERA_FACING_BACK;
         } else {
             mCamera = Camera.open(mFrontCameraID);
+            mFacing = Camera.CameraInfo.CAMERA_FACING_FRONT;
         }
 
         // 配置相机
@@ -143,8 +144,6 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
 
         //开始预览
         mCamera.startPreview();
-
-        mFacing = nextFacing;
     }
 
     /**
@@ -160,6 +159,7 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
     public void onFrameAvailable(SurfaceTexture surfaceTexture) {
         if (mBaseCameraCallback != null) {
             mBaseCameraCallback.onFrameAvailable();
+            mIsWaitingRender = true;
         }
     }
 
@@ -201,11 +201,13 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
      * @return 相机当前帧数据的2D纹理
      */
     public int render() {
-        mSurfaceTexture.updateTexImage();
-        if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 6);
-        } else if (mFacing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-            mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 7);
+        if (mIsWaitingRender) {
+            mSurfaceTexture.updateTexImage();
+            if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 6);
+            } else if (mFacing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 7);
+            }
         }
         return mOutputTexture;
     }
