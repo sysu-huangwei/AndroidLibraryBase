@@ -46,6 +46,8 @@ public class MainActivity extends AppCompatActivity {
     private int surfaceWidth = 0;
     private int surfaceHeight = 0;
 
+    private int count = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,8 +81,7 @@ public class MainActivity extends AppCompatActivity {
         mGLSurfaceView.setRenderer(new GLSurfaceView.Renderer() {
             @Override
             public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-                mBaseCamera.init();
-                mBaseCamera.startPreview();
+                mBaseCamera.initGL();
                 mBase2DTexturePainter.init();
             }
 
@@ -92,6 +93,10 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onDrawFrame(GL10 gl) {
+                count++;
+                if (count == 100) {
+                    mBaseCamera.switchCameraFacing();
+                }
                 int cameraOutputTexture = mBaseCamera.render();
                 mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getPreviewWidth(), mBaseCamera.getPreviewHeight(), surfaceWidth, surfaceHeight);
             }
@@ -101,16 +106,19 @@ public class MainActivity extends AppCompatActivity {
 
         mGLSurfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override
-            public void surfaceCreated(SurfaceHolder holder) { }
+            public void surfaceCreated(SurfaceHolder holder) {
+                mBaseCamera.initCamera();
+                mBaseCamera.setupCamera();
+                mBaseCamera.startPreview();
+            }
 
             @Override
             public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) { }
 
             @Override
             public void surfaceDestroyed(SurfaceHolder holder) {
-                mBase2DTexturePainter.release();
                 mBaseCamera.stopPreview();
-                mBaseCamera.release();
+                mBaseCamera.releaseCamera();
             }
         });
 
@@ -118,6 +126,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFrameAvailable() {
                 mGLSurfaceView.requestRender();
+            }
+
+            @Override
+            public void onInitGLComplete() {
+                mBaseCamera.initCamera();
+                mBaseCamera.setupCamera();
+                mBaseCamera.startPreview();
             }
         });
 
