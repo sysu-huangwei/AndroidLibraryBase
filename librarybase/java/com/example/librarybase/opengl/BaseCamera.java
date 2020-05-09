@@ -17,6 +17,7 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
     private Camera mCamera = null; // 相机实例
     private int mPreviewWidth = 0; // 预览宽
     private int mPreviewHeight = 0; // 预览高
+    private boolean mPreviewSizeChange = false; // 是否改变了预览尺寸，需要重新生成FBO
     private int mFrontCameraID = 0; // 前置相机ID
     private int mBackCameraID = 0; // 后置相机ID
     private int mFacing = Camera.CameraInfo.CAMERA_FACING_FRONT; // 当前相机朝向， 0：后置  1：前置
@@ -29,32 +30,37 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
     private int mOutputTexture = 0; // 用于输出给后续滤镜的相机原始帧的2D纹理
     private int mOutputFrameBuffer = 0; // 用于输出给后续滤镜的相机原始帧的FBO，与mOutputTexture绑定
 
+    private boolean mHasInitGL = false; // 是否已经初始化GL资源
+
     private Base2DTexturePainter mBase2DTexturePainter = new Base2DTexturePainter(); // 把相机原始OES纹理mSurfaceTextureID画到输出的2D纹理mOutputTexture上面
 
     private BaseCameraCallback mBaseCameraCallback; // 相机事件回调
 
 
     /**
-     * 初始化，必须在GL线程
+     * 初始化GL资源，必须在GL线程
+     * 初始化完GL资源之后才能配置相机
      */
-    public void init() {
+    public void initGL() {
         mBase2DTexturePainter.init(true);
 
         mSurfaceTextureID = BaseGLUtils.createExternalOESTextures();
         mSurfaceTexture = new SurfaceTexture(mSurfaceTextureID);
         mSurfaceTexture.setOnFrameAvailableListener(this);
 
-        initCamera();
-        setupCamera();
-
         mOutputTexture = BaseGLUtils.createTextures2D();
-        mOutputFrameBuffer = BaseGLUtils.createFBO(mOutputTexture, mPreviewWidth, mPreviewHeight);
+
+        mHasInitGL = true;
+
+        if (mBaseCameraCallback != null) {
+            mBaseCameraCallback.onInitGLComplete();
+        }
     }
 
     /**
      * 初始化相机
      */
-    private void initCamera() {
+    public void initCamera() {
         int cameraCount = Camera.getNumberOfCameras();
         Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
         for (int i = 0; i < cameraCount; i++) {
@@ -66,23 +72,33 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
             }
         }
 
-        mCamera = Camera.open(mBackCameraID);
-        mFacing = Camera.CameraInfo.CAMERA_FACING_BACK;
+        if (mCamera == null) {
+            if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                mCamera = Camera.open(mFrontCameraID);
+            } else {
+                mCamera = Camera.open(mBackCameraID);
+            }
+        }
     }
 
     /**
-     * 配置相机
+     * 配置相机，必须在初始化完GL资源之后才能配置相机
      */
-    private void setupCamera() {
-        if (mCamera != null) {
+    public void setupCamera() {
+        if (mCamera != null && mHasInitGL) {
             Camera.Parameters parameters = mCamera.getParameters();
 
             List<Camera.Size> previewSizes = parameters.getSupportedPreviewSizes();
             if (previewSizes.size() > 0) {
                 parameters.setPreviewSize(previewSizes.get(0).width, previewSizes.get(0).height);
                 //交换宽高，因为相机获取的尺寸永远都是宽>高
-                mPreviewWidth = previewSizes.get(0).height;
-                mPreviewHeight = previewSizes.get(0).width;
+                int newPreviewWidth = previewSizes.get(0).height;
+                int newPreviewHeight = previewSizes.get(0).width;
+                if (newPreviewWidth != mPreviewWidth || newPreviewHeight != mPreviewHeight) {
+                    mPreviewWidth = newPreviewWidth;
+                    mPreviewHeight = newPreviewHeight;
+                    mPreviewSizeChange = true;
+                }
             }
 
             List<Camera.Size> pictureSizes = parameters.getSupportedPictureSizes();
@@ -94,7 +110,6 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
 
             try {
                 mCamera.setPreviewTexture(mSurfaceTexture);
-                mSurfaceTexture.updateTexImage();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -182,12 +197,10 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
     }
 
     /**
-     * 释放相机和其他资源，必须在GL线程
+     * 释放GL资源，必须在GL线程
      */
-    public void release() {
-        if (mCamera != null) {
-            mCamera.release();
-        }
+    public void releaseGL() {
+        mHasInitGL = false;
         if (mSurfaceTextureID > 0) {
             GLES20.glDeleteTextures(1, new int[]{mSurfaceTextureID}, 0);
             mSurfaceTextureID = 0;
@@ -196,17 +209,35 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
     }
 
     /**
+     * 释放相机
+     */
+    public void releaseCamera() {
+        if (mCamera != null) {
+            mCamera.release();
+            mCamera = null;
+        }
+    }
+
+    /**
      * 把相机当前帧数据绘制到一个2D纹理上，必须在GL线程
      *
      * @return 相机当前帧数据的2D纹理
      */
     public int render() {
-        if (mIsWaitingRender) {
+        if (mHasInitGL) {
             mSurfaceTexture.updateTexImage();
-            if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 6);
-            } else if (mFacing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 7);
+            // 如果预览尺寸改变了，需要重新生成新的尺寸的FBO
+            if (mPreviewSizeChange) {
+                GLES20.glDeleteFramebuffers(1, new int[]{mOutputFrameBuffer}, 0);
+                mOutputFrameBuffer = BaseGLUtils.createFBO(mOutputTexture, mPreviewWidth, mPreviewHeight);
+                mPreviewSizeChange = false;
+            }
+            if (mIsWaitingRender) {
+                if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                    mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 6);
+                } else if (mFacing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                    mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 7);
+                }
             }
         }
         return mOutputTexture;
@@ -222,5 +253,10 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
          * 新的可用相机帧数据就绪（可以拿来渲染了）
          */
         void onFrameAvailable();
+
+        /**
+         * 初始化GL资源完毕，后续才能配置相机
+         */
+        void onInitGLComplete();
     }
 }
