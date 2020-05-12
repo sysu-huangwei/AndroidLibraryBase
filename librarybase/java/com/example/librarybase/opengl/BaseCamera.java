@@ -4,7 +4,12 @@ import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.opengl.GLES20;
 
+import androidx.annotation.IntDef;
+
 import java.io.IOException;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -14,13 +19,36 @@ import java.util.List;
  */
 public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
 
+    /**
+     * 前置&后置摄像头
+     */
+    @IntDef({Camera.CameraInfo.CAMERA_FACING_BACK, Camera.CameraInfo.CAMERA_FACING_FRONT})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface CameraFacingEnum {
+    }
+
+    /**
+     * 相机预览比例
+     */
+    public final static int BASE_CAMERA_ASPECT_RATIO_16_9 = 0;
+    public final static int BASE_CAMERA_ASPECT_RATIO_4_3 = 1;
+    public final static int BASE_CAMERA_ASPECT_RATIO_1_1 = 2;
+    @IntDef({BASE_CAMERA_ASPECT_RATIO_16_9, BASE_CAMERA_ASPECT_RATIO_4_3, BASE_CAMERA_ASPECT_RATIO_1_1})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface CameraAspectRatioEnum {
+    }
+
     private Camera mCamera = null; // 相机实例
     private int mPreviewWidth = 0; // 预览宽
     private int mPreviewHeight = 0; // 预览高
     private boolean mPreviewSizeChange = false; // 是否改变了预览尺寸，需要重新生成FBO
     private int mFrontCameraID = 0; // 前置相机ID
     private int mBackCameraID = 0; // 后置相机ID
-    private int mFacing = Camera.CameraInfo.CAMERA_FACING_FRONT; // 当前相机朝向， 0：后置  1：前置
+    private @CameraFacingEnum int mFacing = Camera.CameraInfo.CAMERA_FACING_FRONT; // 当前相机朝向， 0：后置  1：前置
+
+    private List<Camera.Size> mPreviewSizes = null;
+    private List<Camera.Size> mPictureSizes = null;
+    private @CameraAspectRatioEnum int mAspectRatio = BASE_CAMERA_ASPECT_RATIO_16_9;
 
     private volatile boolean mIsWaitingRender = false; // 是否正在等待渲染，必须要发出onFrameAvailable之后才是要渲染的
 
@@ -88,22 +116,30 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
         if (mCamera != null && mHasInitGL) {
             Camera.Parameters parameters = mCamera.getParameters();
 
-            List<Camera.Size> previewSizes = parameters.getSupportedPreviewSizes();
-            if (previewSizes.size() > 0) {
-                parameters.setPreviewSize(previewSizes.get(0).width, previewSizes.get(0).height);
-                //交换宽高，因为相机获取的尺寸永远都是宽>高
-                int newPreviewWidth = previewSizes.get(0).height;
-                int newPreviewHeight = previewSizes.get(0).width;
-                if (newPreviewWidth != mPreviewWidth || newPreviewHeight != mPreviewHeight) {
-                    mPreviewWidth = newPreviewWidth;
-                    mPreviewHeight = newPreviewHeight;
-                    mPreviewSizeChange = true;
+            mPreviewSizes = parameters.getSupportedPreviewSizes();
+            if (mPreviewSizes != null) {
+                Collections.sort(mPreviewSizes, (o1, o2) -> o2.width - o1.width);
+                Camera.Size previewSize = getSuitableSize(mPreviewSizes, mAspectRatio);
+                if (previewSize != null) {
+                    parameters.setPreviewSize(previewSize.width, previewSize.height);
+                    //交换宽高，因为相机获取的尺寸永远都是宽>高
+                    int newPreviewWidth = previewSize.height;
+                    int newPreviewHeight = previewSize.width;
+                    if (newPreviewWidth != mPreviewWidth || newPreviewHeight != mPreviewHeight) {
+                        mPreviewWidth = newPreviewWidth;
+                        mPreviewHeight = newPreviewHeight;
+                        mPreviewSizeChange = true;
+                    }
                 }
             }
 
-            List<Camera.Size> pictureSizes = parameters.getSupportedPictureSizes();
-            if (pictureSizes.size() > 0) {
-                parameters.setPictureSize(pictureSizes.get(0).width, pictureSizes.get(0).height);
+            mPictureSizes = parameters.getSupportedPictureSizes();
+            if (mPictureSizes != null) {
+                Collections.sort(mPictureSizes, (o1, o2) -> o2.width - o1.width);
+                Camera.Size pictureSize = getSuitableSize(mPictureSizes, mAspectRatio);
+                if (pictureSize != null) {
+                    parameters.setPictureSize(pictureSize.width, pictureSize.height);
+                }
             }
 
             mCamera.setParameters(parameters);
@@ -114,6 +150,39 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * 获取最合适的预览尺寸
+     * @param sizes 所有可选的尺寸
+     * @param aspectRatio 当前的预览比例
+     * @return 最合适的预览尺寸
+     */
+    private Camera.Size getSuitableSize(List<Camera.Size> sizes, @CameraAspectRatioEnum int aspectRatio) {
+        if (sizes != null && sizes.size() > 0) {
+            float ratioMin, ratioMax;
+            float e = 0.05f;
+            if (aspectRatio == BASE_CAMERA_ASPECT_RATIO_16_9) {
+                ratioMin = 16.0f/9.0f;
+                ratioMax = 16.0f/9.0f;
+            } else if (aspectRatio == BASE_CAMERA_ASPECT_RATIO_4_3) {
+                ratioMin = 4.0f/3.0f;
+                ratioMax = 4.0f/3.0f;
+            } else /*if (aspectRatio == BASE_CAMERA_ASPECT_RATIO_1_1)*/ {
+                ratioMin = 1.0f/1.0f;
+                ratioMax = 1.0f/1.0f;
+            }
+            ratioMin -= e;
+            ratioMax += e;
+
+            for (Camera.Size size: sizes) {
+                float ratio = (float)size.width / (float)size.height;
+                if (ratioMin < ratio && ratio < ratioMax) {
+                    return size;
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -131,6 +200,27 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
     public void stopPreview() {
         if (mCamera != null) {
             mCamera.stopPreview();
+        }
+    }
+
+    /**
+     * 获取当前预览比例
+     * @return 当前预览比例
+     */
+    public @CameraAspectRatioEnum int getAspectRatio() {
+        return mAspectRatio;
+    }
+
+    /**
+     * 设置预览比例
+     * @param aspectRatio 预览比例
+     */
+    public void setAspectRatio(@CameraAspectRatioEnum int aspectRatio) {
+        if (mAspectRatio != aspectRatio) {
+            mAspectRatio = aspectRatio;
+            stopPreview();
+            setupCamera();
+            startPreview();
         }
     }
 
