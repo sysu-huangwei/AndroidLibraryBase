@@ -105,7 +105,15 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         if (v.equals(mSwitchCameraFacingButton)) {
             mBaseCamera.switchCameraFacing();
         } else if (v.equals(mChangeCameraRatioButton)) {
-
+            @BaseCamera.CameraAspectRatioEnum int currentAspectRatio = mBaseCamera.getAspectRatio();
+            if (currentAspectRatio == BaseCamera.BASE_CAMERA_ASPECT_RATIO_16_9) {
+                currentAspectRatio = BaseCamera.BASE_CAMERA_ASPECT_RATIO_4_3;
+            } else if (currentAspectRatio == BaseCamera.BASE_CAMERA_ASPECT_RATIO_4_3 ) {
+                currentAspectRatio = BaseCamera.BASE_CAMERA_ASPECT_RATIO_1_1;
+            } else /*if (currentAspectRatio == BaseCamera.BASE_CAMERA_ASPECT_RATIO_1_1 ) */{
+                currentAspectRatio = BaseCamera.BASE_CAMERA_ASPECT_RATIO_16_9;
+            }
+            mBaseCamera.setAspectRatio(currentAspectRatio);
         } else if (v.equals(mTakePictureButton)) {
 
         }
