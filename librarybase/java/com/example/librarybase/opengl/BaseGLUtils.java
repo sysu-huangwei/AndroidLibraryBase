@@ -202,6 +202,23 @@ public class BaseGLUtils {
         return texture;
     }
 
+    public static int createFBO(int texture, int width, int height) {
+        int[] framebuffers = new int[1];
+        GLES20.glGenFramebuffers(1, framebuffers, 0);
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture);
+        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, width, height, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, framebuffers[0]);
+        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, texture, 0);
+
+        int FBOstatus = GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER);
+        if (FBOstatus != GLES20.GL_FRAMEBUFFER_COMPLETE) {
+            Log.e(TAG, "initFBO failed, status: " + FBOstatus);
+        }
+
+        return framebuffers[0];
+    }
+
     /**
      * 读取FBO内容转成ByteBuffer
      *
