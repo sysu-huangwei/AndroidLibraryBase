@@ -1,8 +1,12 @@
 package com.example.librarybase.opengl;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.opengl.GLES20;
+import android.util.Log;
 
 import androidx.annotation.IntDef;
 
@@ -11,6 +15,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Collections;
 import java.util.List;
+
+import static android.opengl.GLES20.GL_TEXTURE_2D;
+import static android.opengl.GLES20.GL_UNSIGNED_BYTE;
 
 /**
  * User: HW
@@ -39,24 +46,32 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
     }
 
     private Camera mCamera = null; // 相机实例
-    private int mPreviewWidth = 0; // 预览宽
-    private int mPreviewHeight = 0; // 预览高
-    private boolean mPreviewSizeChange = false; // 是否改变了预览尺寸，需要重新生成FBO
     private int mFrontCameraID = 0; // 前置相机ID
     private int mBackCameraID = 0; // 后置相机ID
     private @CameraFacingEnum int mFacing = Camera.CameraInfo.CAMERA_FACING_FRONT; // 当前相机朝向， 0：后置  1：前置
+    private @CameraAspectRatioEnum int mAspectRatio = BASE_CAMERA_ASPECT_RATIO_16_9; // 当前相机的预览比例
 
-    private List<Camera.Size> mPreviewSizes = null;
-    private List<Camera.Size> mPictureSizes = null;
-    private @CameraAspectRatioEnum int mAspectRatio = BASE_CAMERA_ASPECT_RATIO_16_9;
+    private List<Camera.Size> mPreviewSizes = null; // 当前相机支持的所有预览尺寸
+    private List<Camera.Size> mPictureSizes = null; // 当前相机支持的所有拍照尺寸
 
-    private volatile boolean mIsWaitingRender = false; // 是否正在等待渲染，必须要发出onFrameAvailable之后才是要渲染的
+    private int mPreviewWidth = 0; // 当前预览宽
+    private int mPreviewHeight = 0; // 当前预览高
+    private boolean mPreviewSizeChange = false; // 是否改变了预览尺寸，需要重新生成FBO
+    private int mPictureWidth = 0; // 当前拍照宽
+    private int mPictureHeight = 0; // 当前拍照高
+
+    private Bitmap mPictureBitmap = null; // 拍照的结果图像
+    private boolean mIsRenderPicture = false; // 是否需要渲染拍照帧
+
+    private volatile boolean mIsPreviewFrameAvailable = false; // 下一预览帧是否已经可用，必须要发出onFrameAvailable之后才是要渲染的
 
     private SurfaceTexture mSurfaceTexture = null; // 获取相机的图像流
     private int mSurfaceTextureID = 0; // 获取相机的图像流纹理ID，与mSurfaceTexture绑定
 
-    private int mOutputTexture = 0; // 用于输出给后续滤镜的相机原始帧的2D纹理
-    private int mOutputFrameBuffer = 0; // 用于输出给后续滤镜的相机原始帧的FBO，与mOutputTexture绑定
+    private int mPictureTextureID = 0; // 拍照帧的纹理ID
+
+    private int mOutputTextureID = 0; // 用于输出给后续滤镜的相机原始帧的2D纹理
+    private int mOutputFrameBufferID = 0; // 用于输出给后续滤镜的相机原始帧的FBO，与mOutputTexture绑定
 
     private boolean mHasInitGL = false; // 是否已经初始化GL资源
 
@@ -76,7 +91,9 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
         mSurfaceTexture = new SurfaceTexture(mSurfaceTextureID);
         mSurfaceTexture.setOnFrameAvailableListener(this);
 
-        mOutputTexture = BaseGLUtils.createTextures2D();
+        mPictureTextureID = BaseGLUtils.createTextures2D();
+
+        mOutputTextureID = BaseGLUtils.createTextures2D();
 
         mHasInitGL = true;
 
@@ -139,6 +156,13 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
                 Camera.Size pictureSize = getSuitableSize(mPictureSizes, mAspectRatio);
                 if (pictureSize != null) {
                     parameters.setPictureSize(pictureSize.width, pictureSize.height);
+                    //交换宽高，因为相机获取的尺寸永远都是宽>高
+                    int newPictureWidth = pictureSize.height;
+                    int newPictureHeight = pictureSize.width;
+                    if (newPictureWidth != mPictureWidth || newPictureHeight != mPictureHeight) {
+                        mPictureWidth = newPictureWidth;
+                        mPictureHeight = newPictureHeight;
+                    }
                 }
             }
 
@@ -190,6 +214,7 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
      */
     public void startPreview() {
         if (mCamera != null) {
+            mIsRenderPicture = false;
             mCamera.startPreview();
         }
     }
@@ -200,6 +225,31 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
     public void stopPreview() {
         if (mCamera != null) {
             mCamera.stopPreview();
+        }
+    }
+
+    /**
+     * 拍照，拍照的结果在{@link BaseCameraCallback#onTakePictureEnd(Bitmap)}里接收
+     */
+    public void takePicture() {
+        if (mCamera != null) {
+            mCamera.takePicture(null, null, (data, camera) -> {
+                if (data != null && mBaseCameraCallback != null) {
+                    // 拍照的照片跟预览一样需要旋转，其中前置需要逆时针90°并左右镜像，后置需要顺时针90°
+                    mPictureBitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
+                    Matrix matrix = new Matrix();
+                    if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                        matrix.setRotate(-90.0f);
+                        matrix.postScale(-1.0f, 1.0f);
+                        mPictureBitmap = Bitmap.createBitmap(mPictureBitmap, 0, 0, mPictureBitmap.getWidth(), mPictureBitmap.getHeight(), matrix, false);
+                    } else /*if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT)*/{
+                        matrix.setRotate(90.0f);
+                        mPictureBitmap = Bitmap.createBitmap(mPictureBitmap, 0, 0, mPictureBitmap.getWidth(), mPictureBitmap.getHeight(), matrix, false);
+                    }
+                    mBaseCameraCallback.onTakePictureEnd(mPictureBitmap); // 把拍照的结果图回调给外部
+                    mIsRenderPicture = true;
+                }
+            });
         }
     }
 
@@ -217,7 +267,7 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
      */
     public void setAspectRatio(@CameraAspectRatioEnum int aspectRatio) {
         if (mAspectRatio != aspectRatio) {
-            mIsWaitingRender = false;
+            mIsPreviewFrameAvailable = false;
             mAspectRatio = aspectRatio;
             stopPreview();
             setupCamera();
@@ -229,10 +279,10 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
      * 切换前后置摄像头
      */
     public void switchCameraFacing() {
-        mIsWaitingRender = false;
+        mIsPreviewFrameAvailable = false;
 
         // 先停止当前的预览并释放相机
-        mCamera.stopPreview();
+        stopPreview();
         mCamera.release();
         mCamera = null;
 
@@ -249,7 +299,7 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
         setupCamera();
 
         //开始预览
-        mCamera.startPreview();
+        startPreview();
     }
 
     /**
@@ -265,26 +315,34 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
     public void onFrameAvailable(SurfaceTexture surfaceTexture) {
         if (mBaseCameraCallback != null) {
             mBaseCameraCallback.onFrameAvailable();
-            mIsWaitingRender = true;
+            mIsPreviewFrameAvailable = true;
         }
     }
 
     /**
-     * 获取当前预览尺寸宽
+     * 获取输出纹理的宽
      *
-     * @return 当前预览尺寸宽
+     * @return 输出纹理的宽
      */
-    public int getPreviewWidth() {
-        return mPreviewWidth;
+    public int getOutputTextureWidth() {
+        if (mIsRenderPicture) {
+            return mPictureWidth;
+        } else {
+            return mPreviewWidth;
+        }
     }
 
     /**
-     * 获取当前预览尺寸高
+     * 获取输出纹理的高
      *
-     * @return 当前预览尺寸高
+     * @return 输出纹理的高
      */
-    public int getPreviewHeight() {
-        return mPreviewHeight;
+    public int getOutputTextureHeight() {
+        if (mIsRenderPicture) {
+            return mPictureHeight;
+        } else {
+            return mPreviewHeight;
+        }
     }
 
     /**
@@ -316,22 +374,29 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
      */
     public int render() {
         if (mHasInitGL) {
-            mSurfaceTexture.updateTexImage();
-            // 如果预览尺寸改变了，需要重新生成新的尺寸的FBO
+            // 拍照逻辑，直接生成拍照帧的纹理返回
+            if (mIsRenderPicture) {
+                GLES20.glBindTexture(GL_TEXTURE_2D, mPictureTextureID);
+                android.opengl.GLUtils.texImage2D(GL_TEXTURE_2D, 0, GLES20.GL_RGBA, mPictureBitmap, GL_UNSIGNED_BYTE, 0);
+                return mPictureTextureID;
+            }
+            // 预览逻辑
             if (mPreviewSizeChange) {
-                GLES20.glDeleteFramebuffers(1, new int[]{mOutputFrameBuffer}, 0);
-                mOutputFrameBuffer = BaseGLUtils.createFBO(mOutputTexture, mPreviewWidth, mPreviewHeight);
+                // 如果预览尺寸改变了，需要重新生成新的尺寸的FBO
+                GLES20.glDeleteFramebuffers(1, new int[]{mOutputFrameBufferID}, 0);
+                mOutputFrameBufferID = BaseGLUtils.createFBO(mOutputTextureID, mPreviewWidth, mPreviewHeight);
                 mPreviewSizeChange = false;
             }
-            if (mIsWaitingRender) {
+            mSurfaceTexture.updateTexImage();
+            if (mIsPreviewFrameAvailable) {
                 if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 6);
+                    mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTextureID, mOutputFrameBufferID, mPreviewWidth, mPreviewHeight, 6);
                 } else if (mFacing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                    mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTexture, mOutputFrameBuffer, mPreviewWidth, mPreviewHeight, 7);
+                    mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTextureID, mOutputFrameBufferID, mPreviewWidth, mPreviewHeight, 7);
                 }
             }
         }
-        return mOutputTexture;
+        return mOutputTextureID;
     }
 
 
@@ -349,5 +414,11 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
          * 初始化GL资源完毕，后续才能配置相机
          */
         void onInitGLComplete();
+
+        /**
+         * 拍照结束，如果需要纹理还需要再调用一次render()
+         * @param bitmap 拍照的结果
+         */
+        void onTakePictureEnd(Bitmap bitmap);
     }
 }
