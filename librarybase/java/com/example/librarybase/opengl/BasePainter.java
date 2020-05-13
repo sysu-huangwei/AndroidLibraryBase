@@ -14,6 +14,10 @@ package com.example.librarybase.opengl;
 
 import android.opengl.GLES20;
 
+import androidx.annotation.IntDef;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.nio.FloatBuffer;
 
 /**
@@ -22,6 +26,22 @@ import java.nio.FloatBuffer;
  * Description: OpenGL 绘制基类
  */
 public abstract class BasePainter {
+
+    /**
+     * 相机预览比例
+     */
+    public final static int BASE_ORIENTATION_1 = 1;
+    public final static int BASE_ORIENTATION_2 = 2;
+    public final static int BASE_ORIENTATION_3 = 3;
+    public final static int BASE_ORIENTATION_4 = 4;
+    public final static int BASE_ORIENTATION_5 = 5;
+    public final static int BASE_ORIENTATION_6 = 6;
+    public final static int BASE_ORIENTATION_7 = 7;
+    public final static int BASE_ORIENTATION_8 = 8;
+    @IntDef({BASE_ORIENTATION_1, BASE_ORIENTATION_2, BASE_ORIENTATION_3, BASE_ORIENTATION_4, BASE_ORIENTATION_5, BASE_ORIENTATION_6, BASE_ORIENTATION_7, BASE_ORIENTATION_8})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface BaseOrientationEnum {
+    }
 
     // 顶点坐标
     protected final float[] mImageVertices1 = {
@@ -148,7 +168,7 @@ public abstract class BasePainter {
      * @param outputHeight       输出的纹理高
      * @param orientation        方向
      */
-    public abstract void render(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputWidth, int outputHeight, int orientation);
+    public abstract void render(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputWidth, int outputHeight, @BaseOrientationEnum int orientation);
 
     /**
      * 绘制到FBO
@@ -177,7 +197,7 @@ public abstract class BasePainter {
      * @param outputHeight       输出的纹理高
      * @param orientation        方向
      */
-    public void renderToFBO(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputTexture, int outputFrameBuffer, int outputWidth, int outputHeight, int orientation) {
+    public void renderToFBO(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputTexture, int outputFrameBuffer, int outputWidth, int outputHeight, @BaseOrientationEnum int orientation) {
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBuffer);
         GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outputTexture, 0);
 

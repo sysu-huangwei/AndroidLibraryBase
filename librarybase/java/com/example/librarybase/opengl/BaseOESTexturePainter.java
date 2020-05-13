@@ -49,7 +49,7 @@ public class BaseOESTexturePainter extends BaseTexturePainter {
     }
 
     @Override
-    public void render(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputWidth, int outputHeight, int orientation) {
+    public void render(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputWidth, int outputHeight, @BaseOrientationEnum int orientation) {
         GLES20.glViewport(0, 0, outputWidth, outputHeight);
 
         // 清屏
