@@ -3,6 +3,7 @@ package com.example.androidlibrarybase;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.graphics.Bitmap;
+import android.hardware.Camera;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.view.SurfaceHolder;
@@ -11,6 +12,7 @@ import android.widget.Button;
 
 import com.example.librarybase.opengl.Base2DTexturePainter;
 import com.example.librarybase.opengl.BaseCamera;
+import com.example.librarybase.opengl.BasePointPainter;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -30,6 +32,8 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     private boolean mIsTakingPicture = false;
 
     Base2DTexturePainter mBase2DTexturePainter = new Base2DTexturePainter();
+
+    BasePointPainter mBasePointPainter = new BasePointPainter();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +56,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             public void onSurfaceCreated(GL10 gl, EGLConfig config) {
                 mBaseCamera.initGL();
                 mBase2DTexturePainter.init();
+                mBasePointPainter.init();
             }
 
             @Override
@@ -63,7 +68,8 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             @Override
             public void onDrawFrame(GL10 gl) {
                 int cameraOutputTexture = mBaseCamera.render();
-                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
+//                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
+                mBasePointPainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
             }
         });
 
@@ -99,11 +105,35 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                 mBaseCamera.initCamera();
                 mBaseCamera.setupCamera();
                 mBaseCamera.startPreview();
+                mBaseCamera.setFaceDetectEnable(true);
             }
 
             @Override
             public void onTakePictureEnd(Bitmap bitmap) {
                 mGLSurfaceView.requestRender();
+            }
+
+            @Override
+            public void onFaceDetected(Camera.Face[] faces, int width, int height) {
+                if (faces != null && faces.length > 0) {
+                    float[] points = new float[6 * faces.length];
+                    for (int i = 0; i < faces.length; i++) {
+                        Camera.Face face = faces[i];
+                        points[6 * i] = (float)face.leftEye.x / (float)width;
+                        points[6 * i + 1] = (float)face.leftEye.y / (float)height;
+                        points[6 * i + 2] = (float)face.rightEye.x / (float)width;
+                        points[6 * i + 3] = (float)face.rightEye.y / (float)height;
+                        points[6 * i + 4] = (float)face.mouth.x / (float)width;
+                        points[6 * i + 5] = (float)face.mouth.y / (float)height;
+                    }
+                    for (int i = 0; i < points.length / 2; i++) {
+                        float originX = points[2 * i];
+                        float originY = points[2 * i + 1];
+                        points[2 * i] = -originY;
+                        points[2 * i + 1] = originX;
+                    }
+                    mBasePointPainter.setPoints(points);
+                }
             }
         });
     }
