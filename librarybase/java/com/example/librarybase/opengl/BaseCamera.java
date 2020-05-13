@@ -217,6 +217,7 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
      */
     public void setAspectRatio(@CameraAspectRatioEnum int aspectRatio) {
         if (mAspectRatio != aspectRatio) {
+            mIsWaitingRender = false;
             mAspectRatio = aspectRatio;
             stopPreview();
             setupCamera();
