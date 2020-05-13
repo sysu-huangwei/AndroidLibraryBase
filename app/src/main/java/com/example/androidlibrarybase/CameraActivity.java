@@ -2,6 +2,7 @@ package com.example.androidlibrarybase;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.graphics.Bitmap;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.view.SurfaceHolder;
@@ -25,6 +26,8 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     private int surfaceHeight = 0;
 
     private BaseCamera mBaseCamera = new BaseCamera();
+
+    private boolean mIsTakingPicture = false;
 
     Base2DTexturePainter mBase2DTexturePainter = new Base2DTexturePainter();
 
@@ -60,7 +63,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             @Override
             public void onDrawFrame(GL10 gl) {
                 int cameraOutputTexture = mBaseCamera.render();
-                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getPreviewWidth(), mBaseCamera.getPreviewHeight(), surfaceWidth, surfaceHeight);
+                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
             }
         });
 
@@ -97,6 +100,11 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                 mBaseCamera.setupCamera();
                 mBaseCamera.startPreview();
             }
+
+            @Override
+            public void onTakePictureEnd(Bitmap bitmap) {
+                mGLSurfaceView.requestRender();
+            }
         });
     }
 
@@ -115,7 +123,16 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             }
             mBaseCamera.setAspectRatio(currentAspectRatio);
         } else if (v.equals(mTakePictureButton)) {
-
+            if (!mIsTakingPicture) {
+                mTakePictureButton.setText("返回预览");
+                mIsTakingPicture = true;
+                mBaseCamera.takePicture();
+                mBaseCamera.stopPreview();
+            } else {
+                mTakePictureButton.setText("拍照");
+                mIsTakingPicture = false;
+                mBaseCamera.startPreview();
+            }
         }
     }
 }
