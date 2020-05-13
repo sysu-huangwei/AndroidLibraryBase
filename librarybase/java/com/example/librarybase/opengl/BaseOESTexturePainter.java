@@ -1,16 +1,16 @@
 package com.example.librarybase.opengl;
 
-
+import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 
 /**
  * User: HW
- * Date: 2020/4/29
- * Description: OpenGL 2D纹理绘制类
+ * Date: 2020/5/13
+ * Description: OpenGL OES纹理绘制类
  */
-public class Base2DTexturePainter extends BaseTexturePainter {
+public class BaseOESTexturePainter extends BaseTexturePainter {
 
-    public Base2DTexturePainter() {
+    public BaseOESTexturePainter() {
         vertexShaderString = ""
                 + "attribute vec4 position;\n"
                 + "attribute vec4 inputTextureCoordinate;\n"
@@ -23,9 +23,10 @@ public class Base2DTexturePainter extends BaseTexturePainter {
                 + "}\n";
 
         fragmentShaderString = ""
+                + "#extension GL_OES_EGL_image_external : require\n"
                 + "precision highp float;\n"
                 + "varying vec2 textureCoordinate;\n"
-                + "uniform sampler2D inputImageTexture;\n"
+                + "uniform samplerExternalOES inputImageTexture;\n"
                 + "void main()\n"
                 + "{\n"
                 + "    gl_FragColor = texture2D(inputImageTexture, textureCoordinate);\n"
@@ -49,19 +50,18 @@ public class Base2DTexturePainter extends BaseTexturePainter {
 
     @Override
     public void render(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputWidth, int outputHeight, int orientation) {
-
         GLES20.glViewport(0, 0, outputWidth, outputHeight);
 
         // 清屏
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-        GLES20.glClearColor(0.0f,0.0f,0.0f,1.0f);
+        GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
         // 使用着色器绘制程序
         GLES20.glUseProgram(mProgram);
 
         // 传入纹理
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, inputTexture);
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, inputTexture);
         GLES20.glUniform1i(mTextureUniform, 0);
 
         // 传入顶点位置

@@ -6,7 +6,6 @@ import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.opengl.GLES20;
-import android.util.Log;
 
 import androidx.annotation.IntDef;
 
@@ -75,7 +74,7 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
 
     private boolean mHasInitGL = false; // 是否已经初始化GL资源
 
-    private Base2DTexturePainter mBase2DTexturePainter = new Base2DTexturePainter(); // 把相机原始OES纹理mSurfaceTextureID画到输出的2D纹理mOutputTexture上面
+    private BaseOESTexturePainter mBaseOESTexturePainter = new BaseOESTexturePainter(); // 把相机原始OES纹理mSurfaceTextureID画到输出的2D纹理mOutputTexture上面
 
     private BaseCameraCallback mBaseCameraCallback; // 相机事件回调
 
@@ -85,7 +84,7 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
      * 初始化完GL资源之后才能配置相机
      */
     public void initGL() {
-        mBase2DTexturePainter.init(true);
+        mBaseOESTexturePainter.init();
 
         mSurfaceTextureID = BaseGLUtils.createExternalOESTextures();
         mSurfaceTexture = new SurfaceTexture(mSurfaceTextureID);
@@ -354,7 +353,7 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
             GLES20.glDeleteTextures(1, new int[]{mSurfaceTextureID}, 0);
             mSurfaceTextureID = 0;
         }
-        mBase2DTexturePainter.release();
+        mBaseOESTexturePainter.release();
     }
 
     /**
@@ -390,9 +389,9 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
             mSurfaceTexture.updateTexImage();
             if (mIsPreviewFrameAvailable) {
                 if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTextureID, mOutputFrameBufferID, mPreviewWidth, mPreviewHeight, 6);
+                    mBaseOESTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTextureID, mOutputFrameBufferID, mPreviewWidth, mPreviewHeight, 6);
                 } else if (mFacing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                    mBase2DTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTextureID, mOutputFrameBufferID, mPreviewWidth, mPreviewHeight, 7);
+                    mBaseOESTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTextureID, mOutputFrameBufferID, mPreviewWidth, mPreviewHeight, 7);
                 }
             }
         }
