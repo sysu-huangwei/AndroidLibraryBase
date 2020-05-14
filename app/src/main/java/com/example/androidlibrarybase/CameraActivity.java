@@ -34,6 +34,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
     Base2DTexturePainter mBase2DTexturePainter = new Base2DTexturePainter();
 
+    BasePointPainter mBasePointPainter = new BasePointPainter();
     BaseRectPainter mBaseRectPainter = new BaseRectPainter();
 
     @Override
@@ -57,6 +58,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             public void onSurfaceCreated(GL10 gl, EGLConfig config) {
                 mBaseCamera.initGL();
                 mBase2DTexturePainter.init();
+                mBasePointPainter.init();
                 mBaseRectPainter.init();
             }
 
@@ -71,9 +73,9 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                 int cameraOutputTexture = mBaseCamera.render();
 //                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
 //                mBaseRectPainter.setRectPoints(new float[] {0.25f, 0.25f, 0.75f, 0.75f, 0.3f, 0.3f, 0.6f, 0.6f});
-                mBaseRectPainter.setRectLineColor(1, 0, 0);
-                mBaseRectPainter.setRectLineWidth(10);
-                mBaseRectPainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
+                int pointOutTexture = mBasePointPainter.renderToInnerFBO(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight());
+                int rectOutTexture = mBaseRectPainter.renderToInnerFBO(pointOutTexture, mBasePointPainter.getOutputTextureWidth(), mBasePointPainter.getOutputTextureHeight());
+                mBase2DTexturePainter.render(rectOutTexture, mBaseRectPainter.getOutputTextureWidth(), mBaseRectPainter.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
             }
         });
 
@@ -147,8 +149,8 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                         rectPoints[2 * i] = -originY;
                         rectPoints[2 * i + 1] = originX;
                     }
+                    mBasePointPainter.setPoints(points);
                     mBaseRectPainter.setRectPoints(rectPoints);
-//                    mBaseRectPainter.setPoints(points);
                 }
             }
         });
