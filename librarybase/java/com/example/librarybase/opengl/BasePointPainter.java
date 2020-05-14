@@ -61,7 +61,10 @@ public class BasePointPainter extends BasePainter {
     public void render(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputWidth, int outputHeight, @BaseOrientationEnum int orientation) {
         // 先把原图画到输出上
         mBase2DTexturePainter.render(inputTexture, inputTextureWidth, inputTextureHeight, outputWidth, outputHeight, orientation);
-        if (mPointsBuffer == null) {
+
+        // 持有住一份数据，防止在另外的线程变量被释放掉
+        FloatBuffer pointsBuffer = mPointsBuffer;
+        if (pointsBuffer == null) {
             return;
         }
 
@@ -70,7 +73,7 @@ public class BasePointPainter extends BasePainter {
 
         // 传入顶点位置
         GLES20.glEnableVertexAttribArray(mPositionAttribute);
-        GLES20.glVertexAttribPointer(mPositionAttribute, mCoordinatesCountPerVertex, GLES20.GL_FLOAT, false, 8, mPointsBuffer);
+        GLES20.glVertexAttribPointer(mPositionAttribute, mCoordinatesCountPerVertex, GLES20.GL_FLOAT, false, 8, pointsBuffer);
 
         // 计算和传入变换矩阵
         getMvpMatrix(mMvpMatrix, (float) outputWidth / (float) outputHeight, inputTextureWidth, inputTextureHeight);

@@ -3,7 +3,6 @@ package com.example.librarybase.opengl;
 import android.opengl.GLES20;
 
 import java.nio.FloatBuffer;
-import java.util.ArrayList;
 
 /**
  * User: HW
@@ -12,7 +11,7 @@ import java.util.ArrayList;
  */
 public class BaseRectPainter extends BasePainter {
 
-    private ArrayList<FloatBuffer> mRectPointsBuffers = new ArrayList<>(); // 需要画的框的(left, top, right, bottom)点集合
+    private FloatBuffer mRectPointsBuffer = null; // 需要画的框的(left, top, right, bottom)点集合
     private int mRectCount = 0; // 框的数量
     private float[] mRectLineColor = new float[] {1.0f, 0.0f, 0.0f}; // 线的颜色
     private float mRectLineWidth = 5.0f; // 线的宽度
@@ -57,7 +56,10 @@ public class BaseRectPainter extends BasePainter {
     public void render(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputWidth, int outputHeight, int orientation) {
         // 先把原图画到输出上
         mBase2DTexturePainter.render(inputTexture, inputTextureWidth, inputTextureHeight, outputWidth, outputHeight, orientation);
-        if (mRectPointsBuffers.isEmpty()) {
+
+        // 持有住一份数据，防止在另外的线程变量被释放掉
+        FloatBuffer rectPointsBufferCopy = mRectPointsBuffer;
+        if (rectPointsBufferCopy == null) {
             return;
         }
 
@@ -74,14 +76,15 @@ public class BaseRectPainter extends BasePainter {
         // 传入线的颜色
         GLES20.glUniform3fv(mRectColorUniform, 1, mRectLineColor, 0);
 
+        // 传入顶点位置
         GLES20.glEnableVertexAttribArray(mPositionAttribute);
-        for (int i = 0; i < mRectCount; i++) {
-            // 传入顶点位置
-            GLES20.glVertexAttribPointer(mPositionAttribute, mCoordinatesCountPerVertex, GLES20.GL_FLOAT, false, 8, mRectPointsBuffers.get(i));
+        GLES20.glVertexAttribPointer(mPositionAttribute, mCoordinatesCountPerVertex, GLES20.GL_FLOAT, false, 8, rectPointsBufferCopy);
 
-            // 绘制
-            GLES20.glDrawArrays(GLES20.GL_LINE_LOOP, 0, 4);
+        // 绘制
+        for (int i = 0; i < mRectCount; i++) {
+            GLES20.glDrawArrays(GLES20.GL_LINE_LOOP, 4 * i, 4);
         }
+
         GLES20.glDisableVertexAttribArray(mPositionAttribute);
     }
 
@@ -90,12 +93,22 @@ public class BaseRectPainter extends BasePainter {
      * @param rectPoints 归一化后的点，{left1, top1, right1, bottom1, left2, ...} 的形式
      */
     public void setRectPoints(float[] rectPoints) {
-        mRectPointsBuffers.clear();
+        mRectPointsBuffer = null;
         if (rectPoints != null && rectPoints.length >= 4) {
+            // 框的数量
             mRectCount = rectPoints.length / 4;
+            float[] rect = new float[mRectCount * 8];
             for (int i = 0; i < mRectCount; i++) {
-                mRectPointsBuffers.add(BaseGLUtils.floatArrayToFloatBuffer(new float[] {rectPoints[4 * i], rectPoints[4 * i + 1], rectPoints[4 * i + 2], rectPoints[4 * i + 1], rectPoints[4 * i + 2], rectPoints[4 * i + 3], rectPoints[4 * i], rectPoints[4 * i + 3]}));
+                rect[8 * i] = rectPoints[4 * i];
+                rect[8 * i + 1] = rectPoints[4 * i + 1];
+                rect[8 * i + 2] = rectPoints[4 * i + 2];
+                rect[8 * i + 3] = rectPoints[4 * i + 1];
+                rect[8 * i + 4] = rectPoints[4 * i + 2];
+                rect[8 * i + 5] = rectPoints[4 * i + 3];
+                rect[8 * i + 6] = rectPoints[4 * i];
+                rect[8 * i + 7] = rectPoints[4 * i + 3];
             }
+            mRectPointsBuffer = BaseGLUtils.floatArrayToFloatBuffer(rect);
         }
     }
 
