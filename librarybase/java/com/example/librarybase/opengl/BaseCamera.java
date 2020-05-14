@@ -399,6 +399,21 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
     }
 
 
+    public void setFaceDetectEnable(boolean enable) {
+        if (mCamera != null) {
+            if (enable) {
+                mCamera.setFaceDetectionListener(((faces, camera) -> {
+                    if (mBaseCameraCallback != null) {
+                        mBaseCameraCallback.onFaceDetected(faces, camera.getParameters().getPreviewSize().width, camera.getParameters().getPreviewSize().height);
+                    }
+                }));
+                mCamera.startFaceDetection();
+            } else {
+                mCamera.stopFaceDetection();
+            }
+        }
+    }
+
     /**
      * 相机事件回调
      */
@@ -419,5 +434,13 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
          * @param bitmap 拍照的结果
          */
         void onTakePictureEnd(Bitmap bitmap);
+
+        /**
+         * 人脸检测结果回调
+         * @param faces 人脸数据
+         * @param width 检测的宽
+         * @param height 检测的高
+         */
+        void onFaceDetected(Camera.Face[] faces, int width, int height);
     }
 }
