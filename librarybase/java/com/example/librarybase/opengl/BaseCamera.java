@@ -389,9 +389,9 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
             mSurfaceTexture.updateTexImage();
             if (mIsPreviewFrameAvailable) {
                 if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    mBaseOESTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTextureID, mOutputFrameBufferID, mPreviewWidth, mPreviewHeight, 6);
+                    mBaseOESTexturePainter.renderToOuterFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTextureID, mOutputFrameBufferID, mPreviewWidth, mPreviewHeight, BasePainter.BASE_ORIENTATION_6);
                 } else if (mFacing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                    mBaseOESTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTextureID, mOutputFrameBufferID, mPreviewWidth, mPreviewHeight, 7);
+                    mBaseOESTexturePainter.renderToOuterFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTextureID, mOutputFrameBufferID, mPreviewWidth, mPreviewHeight, BasePainter.BASE_ORIENTATION_7);
                 }
             }
         }
