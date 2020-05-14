@@ -132,6 +132,11 @@ public abstract class BasePainter {
     protected String vertexShaderString = null; // 顶点着色器脚本
     protected String fragmentShaderString = null; // 片段着色器脚本
 
+    private int mOutputTextureID = 0; // 用于离屏渲染内置的纹理
+    private int mOutputFrameBufferID = 0; // 用于离屏渲染内置的FBO，和mOutputTextureID绑定
+    private int mOutputTextureWidth = 0; // 用于离屏渲染内置的纹理的宽
+    private int mOutputTextureHeight = 0; // 用于离屏渲染内置的纹理的高
+
     /**
      * 初始化GL资源，必须在GL线程
      */
@@ -143,67 +148,130 @@ public abstract class BasePainter {
     public void release() {
         GLES20.glDeleteProgram(mProgram);
         mProgram = 0;
+        GLES20.glDeleteTextures(1, new int[]{mOutputTextureID}, 0);
+        mOutputTextureID = 0;
+        GLES20.glDeleteFramebuffers(1, new int[]{mOutputFrameBufferID}, 0);
+        mOutputFrameBufferID = 0;
+        mOutputTextureWidth = 0;
+        mOutputTextureHeight = 0;
     }
 
     /**
-     * 绘制到屏幕
+     * 绘制到屏幕（默认的FBO）
      *
-     * @param inputTexture       输入纹理
+     * @param inputTextureID     输入纹理
      * @param inputTextureWidth  输入纹理的宽
      * @param inputTextureHeight 输入纹理的高
      * @param outputWidth        输出的纹理宽
      * @param outputHeight       输出的纹理高
      */
-    public void render(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputWidth, int outputHeight) {
-        render(inputTexture, inputTextureWidth, inputTextureHeight, outputWidth, outputHeight, 1);
+    public void render(int inputTextureID, int inputTextureWidth, int inputTextureHeight, int outputWidth, int outputHeight) {
+        render(inputTextureID, inputTextureWidth, inputTextureHeight, outputWidth, outputHeight, BASE_ORIENTATION_1);
     }
 
     /**
-     * 绘制到屏幕
+     * 绘制到屏幕（默认的FBO）
      *
-     * @param inputTexture       输入纹理
+     * @param inputTextureID     输入纹理
      * @param inputTextureWidth  输入纹理的宽
      * @param inputTextureHeight 输入纹理的高
      * @param outputWidth        输出的纹理宽
      * @param outputHeight       输出的纹理高
      * @param orientation        方向
      */
-    public abstract void render(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputWidth, int outputHeight, @BaseOrientationEnum int orientation);
+    public abstract void render(int inputTextureID, int inputTextureWidth, int inputTextureHeight, int outputWidth, int outputHeight, @BaseOrientationEnum int orientation);
 
     /**
-     * 绘制到FBO
+     * 绘制到指定的FBO
      *
-     * @param inputTexture       输入纹理
-     * @param inputTextureWidth  输入纹理的宽
-     * @param inputTextureHeight 输入纹理的高
-     * @param outputTexture      输出的纹理
-     * @param outputFrameBuffer  输出的FBO
-     * @param outputWidth        输出的纹理宽
-     * @param outputHeight       输出的纹理高
+     * @param inputTextureID      输入纹理
+     * @param inputTextureWidth   输入纹理的宽
+     * @param inputTextureHeight  输入纹理的高
+     * @param outputTextureID     输出的纹理
+     * @param outputFrameBufferID 输出的FBO
+     * @param outputWidth         输出的纹理宽
+     * @param outputHeight        输出的纹理高
+     * @return 结果纹理
      */
-    public void renderToFBO(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputTexture, int outputFrameBuffer, int outputWidth, int outputHeight) {
-        renderToFBO(inputTexture, inputTextureWidth, inputTextureHeight, outputTexture, outputFrameBuffer, outputWidth, outputHeight, 1);
+    public int renderToOuterFBO(int inputTextureID, int inputTextureWidth, int inputTextureHeight, int outputTextureID, int outputFrameBufferID, int outputWidth, int outputHeight) {
+        return renderToOuterFBO(inputTextureID, inputTextureWidth, inputTextureHeight, outputTextureID, outputFrameBufferID, outputWidth, outputHeight, BASE_ORIENTATION_1);
     }
 
     /**
-     * 绘制到FBO
+     * 绘制到指定的FBO
      *
-     * @param inputTexture       输入纹理
-     * @param inputTextureWidth  输入纹理的宽
-     * @param inputTextureHeight 输入纹理的高
-     * @param outputTexture      输出的纹理
-     * @param outputFrameBuffer  输出的FBO
-     * @param outputWidth        输出的纹理宽
-     * @param outputHeight       输出的纹理高
-     * @param orientation        方向
+     * @param inputTextureID      输入纹理
+     * @param inputTextureWidth   输入纹理的宽
+     * @param inputTextureHeight  输入纹理的高
+     * @param outputTextureID     输出的纹理
+     * @param outputFrameBufferID 输出的FBO
+     * @param outputWidth         输出的纹理宽
+     * @param outputHeight        输出的纹理高
+     * @param orientation         方向
+     * @return 结果纹理
      */
-    public void renderToFBO(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputTexture, int outputFrameBuffer, int outputWidth, int outputHeight, @BaseOrientationEnum int orientation) {
-        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBuffer);
-        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outputTexture, 0);
+    public int renderToOuterFBO(int inputTextureID, int inputTextureWidth, int inputTextureHeight, int outputTextureID, int outputFrameBufferID, int outputWidth, int outputHeight, @BaseOrientationEnum int orientation) {
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBufferID);
+        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outputTextureID, 0);
 
-        render(inputTexture, inputTextureWidth, inputTextureHeight, outputWidth, outputHeight, orientation);
+        render(inputTextureID, inputTextureWidth, inputTextureHeight, outputWidth, outputHeight, orientation);
 
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_NONE);
+
+        return outputTextureID;
+    }
+
+    /**
+     * 绘制到内置的FBO
+     *
+     * @param inputTextureID     输入纹理
+     * @param inputTextureWidth  输入纹理的宽
+     * @param inputTextureHeight 输入纹理的高
+     * @return 结果纹理
+     */
+    public int renderToInnerFBO(int inputTextureID, int inputTextureWidth, int inputTextureHeight) {
+        return renderToInnerFBO(inputTextureID, inputTextureWidth, inputTextureHeight, BASE_ORIENTATION_1);
+    }
+
+    /**
+     * 绘制到内置的FBO
+     *
+     * @param inputTextureID     输入纹理
+     * @param inputTextureWidth  输入纹理的宽
+     * @param inputTextureHeight 输入纹理的高
+     * @param orientation        方向
+     * @return 结果纹理
+     */
+    public int renderToInnerFBO(int inputTextureID, int inputTextureWidth, int inputTextureHeight, @BaseOrientationEnum int orientation) {
+        if (mOutputTextureID <= 0) {
+            mOutputTextureID = BaseGLUtils.createTextures2D();
+        }
+
+        if (inputTextureWidth != mOutputTextureWidth || inputTextureHeight != mOutputTextureHeight) {
+            mOutputTextureWidth = inputTextureWidth;
+            mOutputTextureHeight = inputTextureHeight;
+            GLES20.glDeleteFramebuffers(1, new int[]{mOutputFrameBufferID}, 0);
+            mOutputFrameBufferID = BaseGLUtils.createFBO(mOutputTextureID, mOutputTextureWidth, mOutputTextureHeight);
+        }
+
+        return renderToOuterFBO(inputTextureID, inputTextureWidth, inputTextureHeight, mOutputTextureID, mOutputFrameBufferID, mOutputTextureWidth, mOutputTextureHeight, orientation);
+    }
+
+    /**
+     * 获取结果纹理的宽
+     *
+     * @return 结果纹理的宽
+     */
+    public int getOutputTextureWidth() {
+        return mOutputTextureWidth;
+    }
+
+    /**
+     * 获取结果纹理的高
+     * @return 结果纹理的高
+     */
+    public int getOutputTextureHeight() {
+        return mOutputTextureHeight;
     }
 
     /**

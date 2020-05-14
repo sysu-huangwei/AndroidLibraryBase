@@ -55,7 +55,6 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
 
     private int mPreviewWidth = 0; // 当前预览宽
     private int mPreviewHeight = 0; // 当前预览高
-    private boolean mPreviewSizeChange = false; // 是否改变了预览尺寸，需要重新生成FBO
     private int mPictureWidth = 0; // 当前拍照宽
     private int mPictureHeight = 0; // 当前拍照高
 
@@ -68,9 +67,6 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
     private int mSurfaceTextureID = 0; // 获取相机的图像流纹理ID，与mSurfaceTexture绑定
 
     private int mPictureTextureID = 0; // 拍照帧的纹理ID
-
-    private int mOutputTextureID = 0; // 用于输出给后续滤镜的相机原始帧的2D纹理
-    private int mOutputFrameBufferID = 0; // 用于输出给后续滤镜的相机原始帧的FBO，与mOutputTexture绑定
 
     private boolean mHasInitGL = false; // 是否已经初始化GL资源
 
@@ -91,8 +87,6 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
         mSurfaceTexture.setOnFrameAvailableListener(this);
 
         mPictureTextureID = BaseGLUtils.createTextures2D();
-
-        mOutputTextureID = BaseGLUtils.createTextures2D();
 
         mHasInitGL = true;
 
@@ -144,7 +138,6 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
                     if (newPreviewWidth != mPreviewWidth || newPreviewHeight != mPreviewHeight) {
                         mPreviewWidth = newPreviewWidth;
                         mPreviewHeight = newPreviewHeight;
-                        mPreviewSizeChange = true;
                     }
                 }
             }
@@ -380,25 +373,22 @@ public class BaseCamera implements SurfaceTexture.OnFrameAvailableListener {
                 return mPictureTextureID;
             }
             // 预览逻辑
-            if (mPreviewSizeChange) {
-                // 如果预览尺寸改变了，需要重新生成新的尺寸的FBO
-                GLES20.glDeleteFramebuffers(1, new int[]{mOutputFrameBufferID}, 0);
-                mOutputFrameBufferID = BaseGLUtils.createFBO(mOutputTextureID, mPreviewWidth, mPreviewHeight);
-                mPreviewSizeChange = false;
-            }
             mSurfaceTexture.updateTexImage();
             if (mIsPreviewFrameAvailable) {
                 if (mFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    mBaseOESTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTextureID, mOutputFrameBufferID, mPreviewWidth, mPreviewHeight, 6);
+                    return mBaseOESTexturePainter.renderToInnerFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, BasePainter.BASE_ORIENTATION_6);
                 } else if (mFacing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                    mBaseOESTexturePainter.renderToFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, mOutputTextureID, mOutputFrameBufferID, mPreviewWidth, mPreviewHeight, 7);
+                    return mBaseOESTexturePainter.renderToInnerFBO(mSurfaceTextureID, mPreviewWidth, mPreviewHeight, BasePainter.BASE_ORIENTATION_7);
                 }
             }
         }
-        return mOutputTextureID;
+        return 0;
     }
 
-
+    /**
+     * 是否开启人脸检测
+     * @param enable 人脸检测开关
+     */
     public void setFaceDetectEnable(boolean enable) {
         if (mCamera != null) {
             if (enable) {
