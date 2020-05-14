@@ -7,7 +7,7 @@ import java.nio.FloatBuffer;
 /**
  * User: HW
  * Date: 2020/5/13
- * Description:
+ * Description: OpenGL 在原纹理上画点
  */
 public class BasePointPainter extends BasePainter {
 
@@ -93,6 +93,7 @@ public class BasePointPainter extends BasePainter {
      * @param points 归一化后的点，{x0, y0, x1, y1, ...} 的形式
      */
     public void setPoints(float[] points) {
+        mPointsBuffer = null;
         if (points != null && points.length > 0) {
             mPointCount = points.length / 2;
             mPointsBuffer = BaseGLUtils.floatArrayToFloatBuffer(points);
