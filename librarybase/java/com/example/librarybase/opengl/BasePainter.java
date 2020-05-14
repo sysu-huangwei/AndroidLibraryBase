@@ -132,6 +132,11 @@ public abstract class BasePainter {
     protected String vertexShaderString = null; // 顶点着色器脚本
     protected String fragmentShaderString = null; // 片段着色器脚本
 
+    private int mOutputTextureID = 0; // 用于离屏渲染内置的纹理
+    private int mOutputFrameBufferID = 0; // 用于离屏渲染内置的FBO，mOutputTextureID
+    private int mOutputTextureWidth = 0; // 内置纹理的宽
+    private int mOutputTextureHeight = 0; // 内置纹理的高
+
     /**
      * 初始化GL资源，必须在GL线程
      */
@@ -143,6 +148,12 @@ public abstract class BasePainter {
     public void release() {
         GLES20.glDeleteProgram(mProgram);
         mProgram = 0;
+        GLES20.glDeleteTextures(1, new int[]{mOutputTextureID}, 0);
+        mOutputTextureID = 0;
+        GLES20.glDeleteFramebuffers(1, new int[]{mOutputFrameBufferID}, 0);
+        mOutputFrameBufferID = 0;
+        mOutputTextureWidth = 0;
+        mOutputTextureHeight = 0;
     }
 
     /**
@@ -181,8 +192,8 @@ public abstract class BasePainter {
      * @param outputWidth        输出的纹理宽
      * @param outputHeight       输出的纹理高
      */
-    public void renderToFBO(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputTexture, int outputFrameBuffer, int outputWidth, int outputHeight) {
-        renderToFBO(inputTexture, inputTextureWidth, inputTextureHeight, outputTexture, outputFrameBuffer, outputWidth, outputHeight, 1);
+    public int renderToFBO(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputTexture, int outputFrameBuffer, int outputWidth, int outputHeight) {
+        return renderToFBO(inputTexture, inputTextureWidth, inputTextureHeight, outputTexture, outputFrameBuffer, outputWidth, outputHeight, 1);
     }
 
     /**
@@ -197,13 +208,55 @@ public abstract class BasePainter {
      * @param outputHeight       输出的纹理高
      * @param orientation        方向
      */
-    public void renderToFBO(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputTexture, int outputFrameBuffer, int outputWidth, int outputHeight, @BaseOrientationEnum int orientation) {
+    public int renderToFBO(int inputTexture, int inputTextureWidth, int inputTextureHeight, int outputTexture, int outputFrameBuffer, int outputWidth, int outputHeight, @BaseOrientationEnum int orientation) {
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBuffer);
         GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outputTexture, 0);
 
         render(inputTexture, inputTextureWidth, inputTextureHeight, outputWidth, outputHeight, orientation);
 
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_NONE);
+
+        return outputTexture;
+    }
+
+    /**
+     * 绘制到内置的FBO
+     *
+     * @param inputTexture       输入纹理
+     * @param inputTextureWidth  输入纹理的宽
+     * @param inputTextureHeight 输入纹理的高
+     * @return 结果纹理
+     */
+    public int renderToInnerFBO(int inputTexture, int inputTextureWidth, int inputTextureHeight) {
+        return renderToInnerFBO(inputTexture, inputTextureWidth, inputTextureHeight, 1);
+    }
+
+    /**
+     * 绘制到内置的FBO
+     *
+     * @param inputTexture       输入纹理
+     * @param inputTextureWidth  输入纹理的宽
+     * @param inputTextureHeight 输入纹理的高
+     * @param orientation        方向
+     * @return 结果纹理
+     */
+    public int renderToInnerFBO(int inputTexture, int inputTextureWidth, int inputTextureHeight, @BaseOrientationEnum int orientation) {
+        if (inputTextureWidth != mOutputTextureWidth || inputTextureHeight != mOutputTextureHeight) {
+            mOutputTextureWidth = inputTextureWidth;
+            mOutputTextureHeight = inputTextureHeight;
+            GLES20.glDeleteFramebuffers(1, new int[]{mOutputFrameBufferID}, 0);
+            mOutputFrameBufferID = BaseGLUtils.createFBO(mOutputTextureID, mOutputTextureWidth, mOutputTextureHeight);
+        }
+
+        return renderToFBO(inputTexture, inputTextureWidth, inputTextureHeight, mOutputTextureID, mOutputFrameBufferID, mOutputTextureWidth, mOutputTextureHeight, orientation);
+    }
+
+    public int getOutputTextureWidth() {
+        return mOutputTextureWidth;
+    }
+
+    public int getOutputTextureHeight() {
+        return mOutputTextureHeight;
     }
 
     /**
