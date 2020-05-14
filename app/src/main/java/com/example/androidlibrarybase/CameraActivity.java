@@ -13,6 +13,7 @@ import android.widget.Button;
 import com.example.librarybase.opengl.Base2DTexturePainter;
 import com.example.librarybase.opengl.BaseCamera;
 import com.example.librarybase.opengl.BasePointPainter;
+import com.example.librarybase.opengl.BaseRectPainter;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -33,7 +34,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
     Base2DTexturePainter mBase2DTexturePainter = new Base2DTexturePainter();
 
-    BasePointPainter mBasePointPainter = new BasePointPainter();
+    BaseRectPainter mBaseRectPainter = new BaseRectPainter();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,7 +57,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             public void onSurfaceCreated(GL10 gl, EGLConfig config) {
                 mBaseCamera.initGL();
                 mBase2DTexturePainter.init();
-                mBasePointPainter.init();
+                mBaseRectPainter.init();
             }
 
             @Override
@@ -69,7 +70,10 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             public void onDrawFrame(GL10 gl) {
                 int cameraOutputTexture = mBaseCamera.render();
 //                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
-                mBasePointPainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
+//                mBaseRectPainter.setRectPoints(new float[] {0.25f, 0.25f, 0.75f, 0.75f, 0.3f, 0.3f, 0.6f, 0.6f});
+                mBaseRectPainter.setRectLineColor(1, 0, 0);
+                mBaseRectPainter.setRectLineWidth(10);
+                mBaseRectPainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
             }
         });
 
@@ -117,6 +121,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             public void onFaceDetected(Camera.Face[] faces, int width, int height) {
                 if (faces != null && faces.length > 0) {
                     float[] points = new float[6 * faces.length];
+                    float[] rectPoints = new float[4 * faces.length];
                     for (int i = 0; i < faces.length; i++) {
                         Camera.Face face = faces[i];
                         points[6 * i] = (float)face.leftEye.x / (float)width;
@@ -125,6 +130,10 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                         points[6 * i + 3] = (float)face.rightEye.y / (float)height;
                         points[6 * i + 4] = (float)face.mouth.x / (float)width;
                         points[6 * i + 5] = (float)face.mouth.y / (float)height;
+                        rectPoints[4 * i] = (float)face.rect.left / (float)width;
+                        rectPoints[4 * i + 1] = (float)face.rect.top / (float)height;
+                        rectPoints[4 * i + 2] = (float)face.rect.right / (float)width;
+                        rectPoints[4 * i + 3] = (float)face.rect.bottom / (float)height;
                     }
                     for (int i = 0; i < points.length / 2; i++) {
                         float originX = points[2 * i];
@@ -132,7 +141,14 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                         points[2 * i] = -originY;
                         points[2 * i + 1] = originX;
                     }
-                    mBasePointPainter.setPoints(points);
+                    for (int i = 0; i < rectPoints.length / 2; i++) {
+                        float originX = rectPoints[2 * i];
+                        float originY = rectPoints[2 * i + 1];
+                        rectPoints[2 * i] = -originY;
+                        rectPoints[2 * i + 1] = originX;
+                    }
+                    mBaseRectPainter.setRectPoints(rectPoints);
+//                    mBaseRectPainter.setPoints(points);
                 }
             }
         });
