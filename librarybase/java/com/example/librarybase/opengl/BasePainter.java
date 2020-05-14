@@ -243,6 +243,10 @@ public abstract class BasePainter {
      * @return 结果纹理
      */
     public int renderToInnerFBO(int inputTextureID, int inputTextureWidth, int inputTextureHeight, @BaseOrientationEnum int orientation) {
+        if (mOutputTextureID <= 0) {
+            mOutputTextureID = BaseGLUtils.createTextures2D();
+        }
+
         if (inputTextureWidth != mOutputTextureWidth || inputTextureHeight != mOutputTextureHeight) {
             mOutputTextureWidth = inputTextureWidth;
             mOutputTextureHeight = inputTextureHeight;
