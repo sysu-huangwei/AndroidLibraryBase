@@ -21,9 +21,10 @@ public class Base3DPainter  {
     private int inputImageTextureUniform = 0;
     private int depthImageTextureUniform = 0;
     private int materialImageTextureUniform = 0;
+    private int xyOffsetUniform = 0;
     private int scaleUniform = 0;
     private int focusUniform = 0;
-    
+
     private int outputTextureID = 0; // 用于离屏渲染内置的纹理
     private int outputFrameBufferID = 0; // 用于离屏渲染内置的FBO，outputTextureID
     private int width = 0; // 用于离屏渲染内置的纹理的宽
@@ -66,14 +67,14 @@ public class Base3DPainter  {
                 + "uniform sampler2D inputImageTexture;\n"
                 + "uniform sampler2D depthImageTexture;\n"
                 + "uniform sampler2D materialImageTexture;\n"
-                + "uniform vec2 uv_offset;\n"
+                + "uniform vec2 xyOffset;\n"
                 + "uniform float scale;\n"
                 + "uniform float focus;\n"
                 + "void main()\n"
                 + "{\n"
                 + "    float map = texture2D(depthImageTexture, textureCoordinate).r;\n"
                 + "    map = map * (- 1.0) + focus;\n"
-                + "    vec2 TexCoordinateShift = textureCoordinate + uv_offset * map * scale;\n"
+                + "    vec2 TexCoordinateShift = textureCoordinate + xyOffset * map * scale;\n"
                 + "    gl_FragColor = texture2D(inputImageTexture, TexCoordinateShift);\n"
                 + "}\n";
     }
@@ -89,6 +90,7 @@ public class Base3DPainter  {
             inputImageTextureUniform = GLES20.glGetUniformLocation(program, "inputImageTexture");
             depthImageTextureUniform = GLES20.glGetUniformLocation(program, "depthImageTexture");
             materialImageTextureUniform = GLES20.glGetUniformLocation(program, "materialImageTexture");
+            xyOffsetUniform = GLES20.glGetUniformLocation(program, "xyOffset");
             scaleUniform = GLES20.glGetUniformLocation(program, "scale");
             focusUniform = GLES20.glGetUniformLocation(program, "focus");
         }
@@ -110,7 +112,7 @@ public class Base3DPainter  {
         height = 0;
     }
 
-    public int render(int inputTextureID, int depthTextureID, int materialTextureID) {
+    public int render(int inputTextureID, int depthTextureID, int materialTextureID, float xOffset, float yOffset) {
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBufferID);
         GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outputTextureID, 0);
 
@@ -139,6 +141,7 @@ public class Base3DPainter  {
         //传入其他参数
         GLES20.glUniform1f(focusUniform, 0.5f);
         GLES20.glUniform1f(scaleUniform, 0.05f);
+        GLES20.glUniform2f(xyOffsetUniform, xOffset, yOffset);
 
         // 传入顶点位置
         GLES20.glEnableVertexAttribArray(positionAttribute);
