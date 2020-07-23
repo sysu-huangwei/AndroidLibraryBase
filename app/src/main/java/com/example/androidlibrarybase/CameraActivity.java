@@ -3,6 +3,7 @@ package com.example.androidlibrarybase;
 import android.content.res.AssetManager;
 import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
+import android.util.Log;
 import android.util.Pair;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -60,6 +61,8 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     ArrayList<Float> xShift;
     ArrayList<Float> yShift;
     int currentShiftIndex = 0;
+    int currentDirection = 1;
+    final Object shiftLock = new Object();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,7 +92,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         depth = BitmapFactory.decodeStream(inputStreamDepth);
         material = BitmapFactory.decodeStream(inputStreamMaterial);
 
-        Pair<ArrayList<Float>, ArrayList<Float>> shift = getShift(1, 0.5f, 20);
+        Pair<ArrayList<Float>, ArrayList<Float>> shift = getShift(currentDirection, 0.5f, 20);
         xShift = shift.first;
         yShift = shift.second;
 
@@ -118,17 +121,23 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
             @Override
             public void onDrawFrame(GL10 gl) {
+                synchronized (shiftLock) {
+                    currentShiftIndex++;
+                    if (currentShiftIndex >= xShift.size()) {
+                        currentShiftIndex = 0;
+                    }
 //                int cameraOutputTexture = mBaseCamera.render();
 //                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
 //                mBaseRectPainter.setRectPoints(new float[] {0.25f, 0.25f, 0.75f, 0.75f, 0.3f, 0.3f, 0.6f, 0.6f});
-                int texture = base3DPainter.render(bitmapTextureID, depthTextureID, materialTextureID, xShift.get(currentShiftIndex), yShift.get(currentShiftIndex));
+                    int texture = base3DPainter
+                            .render(bitmapTextureID, depthTextureID, materialTextureID,
+                                    xShift.get(currentShiftIndex), yShift.get(currentShiftIndex));
 //                int pointOutTexture = mBasePointPainter.renderToInnerFBO(bitmapTextureID, bitmap.getWidth(), bitmap.getHeight());
 //                int rectOutTexture = mBaseRectPainter.renderToInnerFBO(pointOutTexture, mBasePointPainter.getOutputTextureWidth(), mBasePointPainter.getOutputTextureHeight());
-                mBase2DTexturePainter.render(texture, bitmap.getWidth(), bitmap.getHeight(), surfaceWidth, surfaceHeight);
+                    mBase2DTexturePainter
+                            .render(texture, bitmap.getWidth(), bitmap.getHeight(), surfaceWidth,
+                                    surfaceHeight);
 
-                currentShiftIndex++;
-                if (currentShiftIndex >= xShift.size()) {
-                    currentShiftIndex = 0;
                 }
             }
         });
@@ -212,6 +221,17 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
     @Override
     public void onClick(View v) {
+        if (v.equals(mTakePictureButton)) {
+            synchronized (shiftLock) {
+                currentDirection++;
+                if (currentDirection > 3) {
+                    currentDirection = 1;
+                }
+                Pair<ArrayList<Float>, ArrayList<Float>> shift = getShift(currentDirection, 0.5f, 20);
+                xShift = shift.first;
+                yShift = shift.second;
+            }
+        }
 //        if (v.equals(mSwitchCameraFacingButton)) {
 //            mBaseCamera.switchCameraFacing();
 //        } else if (v.equals(mChangeCameraRatioButton)) {
@@ -238,7 +258,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 //        }
     }
 
-    private Pair<ArrayList<Float>, ArrayList<Float>> getShift(int direction, float threshold, int step) {
+    private static Pair<ArrayList<Float>, ArrayList<Float>> getShift(int direction, float threshold, int step) {
         ArrayList<Float> xShift = new ArrayList<>();
         ArrayList<Float> yShift = new ArrayList<>();
         if (direction == 1) {
