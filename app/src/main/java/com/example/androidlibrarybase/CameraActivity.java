@@ -18,6 +18,7 @@ import com.example.librarybase.opengl.Base3DPainter;
 import com.example.librarybase.opengl.BaseCamera;
 import com.example.librarybase.opengl.BaseGLUtils;
 import com.example.librarybase.opengl.BaseDilateFilter;
+import com.example.librarybase.opengl.BaseGaussianBlurFilter;
 import com.example.librarybase.opengl.BasePointPainter;
 import com.example.librarybase.opengl.BaseRectPainter;
 
@@ -66,6 +67,8 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     BaseDilateFilter baseDilateFilter = new BaseDilateFilter();
     volatile boolean showOrigin = false;
 
+    BaseGaussianBlurFilter baseGaussianBlurFilter = new BaseGaussianBlurFilter();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -110,6 +113,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                 materialTextureID = BaseGLUtils.createTextures2DWithBitmap(material, GLES20.GL_RGBA);
                 base3DPainter.init(bitmap.getWidth(), bitmap.getHeight());
                 baseDilateFilter.init(bitmap.getWidth(), bitmap.getHeight());
+                baseGaussianBlurFilter.init(bitmap.getWidth(), bitmap.getHeight());
 //                mBaseCamera.initGL();
                 mBase2DTexturePainter.init();
                 mBasePointPainter.init();
@@ -138,7 +142,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 //                int cameraOutputTexture = mBaseCamera.render();
 //                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
 //                mBaseRectPainter.setRectPoints(new float[] {0.25f, 0.25f, 0.75f, 0.75f, 0.3f, 0.3f, 0.6f, 0.6f});
-                        int maxDepthTextureID = baseDilateFilter.render(depthTextureID);
+                        int maxDepthTextureID = baseGaussianBlurFilter.render(depthTextureID);
 //                    int texture = base3DPainter
 //                            .render(bitmapTextureID, depthTextureID, materialTextureID,
 //                                    xShift.get(currentShiftIndex), yShift.get(currentShiftIndex));
