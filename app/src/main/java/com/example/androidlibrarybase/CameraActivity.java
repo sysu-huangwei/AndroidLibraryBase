@@ -19,6 +19,7 @@ import com.example.librarybase.opengl.BaseCamera;
 import com.example.librarybase.opengl.BaseGLUtils;
 import com.example.librarybase.opengl.BaseDilateFilter;
 import com.example.librarybase.opengl.BaseGaussianBlurFilter;
+import com.example.librarybase.opengl.BasePerspectiveFilter;
 import com.example.librarybase.opengl.BasePointPainter;
 import com.example.librarybase.opengl.BaseRectPainter;
 
@@ -87,6 +88,8 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
     BaseGaussianBlurFilter baseGaussianBlurFilter = new BaseGaussianBlurFilter();
 
+    BasePerspectiveFilter basePerspectiveFilter = new BasePerspectiveFilter();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -134,6 +137,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                 base3DPainter.init(bitmap.getWidth(), bitmap.getHeight());
                 baseDilateFilter.init(bitmap.getWidth(), bitmap.getHeight());
                 baseGaussianBlurFilter.init(bitmap.getWidth(), bitmap.getHeight());
+                basePerspectiveFilter.init(bitmap.getWidth(), bitmap.getHeight());
 //                mBaseCamera.initGL();
                 mBase2DTexturePainter.init();
                 mBasePointPainter.init();
@@ -150,30 +154,34 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             public void onDrawFrame(GL10 gl) {
                 synchronized (shiftLock) {
                     if (showOrigin) {
-                        mBase2DTexturePainter
-                                .render(depthTextureID, bitmap.getWidth(), bitmap.getHeight(),
-                                        surfaceWidth,
-                                        surfaceHeight);
-                    } else {
-                        currentShiftIndex++;
-                        if (currentShiftIndex >= xShift.size()) {
-                            currentShiftIndex = 0;
-                        }
-//                int cameraOutputTexture = mBaseCamera.render();
-//                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
-//                mBaseRectPainter.setRectPoints(new float[] {0.25f, 0.25f, 0.75f, 0.75f, 0.3f, 0.3f, 0.6f, 0.6f});
-                        int dilateDepthTextureID = baseDilateFilter.render(depthTextureID);
-                        int dilateAndBlurDepthTextureID = baseGaussianBlurFilter.render(dilateDepthTextureID);
-                    int texture = base3DPainter
-                            .render(bitmapTextureID, dilateAndBlurDepthTextureID, depthTextureID, materialTextureAndDepth,
-                                    xShift.get(currentShiftIndex), yShift.get(currentShiftIndex));
-//                int pointOutTexture = mBasePointPainter.renderToInnerFBO(bitmapTextureID, bitmap.getWidth(), bitmap.getHeight());
-//                int rectOutTexture = mBaseRectPainter.renderToInnerFBO(pointOutTexture, mBasePointPainter.getOutputTextureWidth(), mBasePointPainter.getOutputTextureHeight());
+                        int texture = basePerspectiveFilter.render(bitmapTextureID);
                         mBase2DTexturePainter
                                 .render(texture, bitmap.getWidth(), bitmap.getHeight(),
-                                        surfaceWidth,
-                                        surfaceHeight);
+                                        surfaceWidth, surfaceHeight);
+                    } else {
+                        mBase2DTexturePainter
+                                .render(bitmapTextureID, bitmap.getWidth(), bitmap.getHeight(),
+                                        surfaceWidth, surfaceHeight);
                     }
+//                        currentShiftIndex++;
+//                        if (currentShiftIndex >= xShift.size()) {
+//                            currentShiftIndex = 0;
+//                        }
+////                int cameraOutputTexture = mBaseCamera.render();
+////                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
+////                mBaseRectPainter.setRectPoints(new float[] {0.25f, 0.25f, 0.75f, 0.75f, 0.3f, 0.3f, 0.6f, 0.6f});
+//                        int dilateDepthTextureID = baseDilateFilter.render(depthTextureID);
+//                        int dilateAndBlurDepthTextureID = baseGaussianBlurFilter.render(dilateDepthTextureID);
+//                    int texture = base3DPainter
+//                            .render(bitmapTextureID, dilateAndBlurDepthTextureID, depthTextureID, materialTextureAndDepth,
+//                                    xShift.get(currentShiftIndex), yShift.get(currentShiftIndex));
+////                int pointOutTexture = mBasePointPainter.renderToInnerFBO(bitmapTextureID, bitmap.getWidth(), bitmap.getHeight());
+////                int rectOutTexture = mBaseRectPainter.renderToInnerFBO(pointOutTexture, mBasePointPainter.getOutputTextureWidth(), mBasePointPainter.getOutputTextureHeight());
+//                        mBase2DTexturePainter
+//                                .render(texture, bitmap.getWidth(), bitmap.getHeight(),
+//                                        surfaceWidth,
+//                                        surfaceHeight);
+//                    }
 
                 }
             }
