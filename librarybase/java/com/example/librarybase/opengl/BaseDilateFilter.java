@@ -135,8 +135,8 @@ public class BaseDilateFilter {
         GLES20.glUniform1i(inputImageTextureUniform, 0);
 
         //传入其他参数
-        GLES20.glUniform1f(texelWidthOffsetUniform, 0.01f);
-        GLES20.glUniform1f(texelHeightOffsetUniform, 0.01f);
+        GLES20.glUniform1f(texelWidthOffsetUniform, 0.02f);
+        GLES20.glUniform1f(texelHeightOffsetUniform, 0.02f);
 
         // 传入顶点位置
         GLES20.glEnableVertexAttribArray(positionAttribute);

@@ -54,8 +54,26 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     Bitmap depth;
     int depthTextureID;
 
-    Bitmap material;
-    int materialTextureID;
+    Bitmap material1;
+    int materialTextureID1;
+    float materialDepth1 = 0.07f;
+
+    Bitmap material2;
+    int materialTextureID2;
+    float materialDepth2 = 0.2f;
+
+    Bitmap material3;
+    int materialTextureID3;
+    float materialDepth3 = 0.7f;
+
+    Bitmap material4;
+    int materialTextureID4;
+    float materialDepth4 = 1.2f;
+
+    Bitmap material5;
+    int materialTextureID5;
+    float materialDepth5 = 1.5f;
+
 
     Base3DPainter base3DPainter = new Base3DPainter();
     ArrayList<Float> xShift;
@@ -81,25 +99,18 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         mTakePictureButton = findViewById(R.id.take_picture);
         mTakePictureButton.setOnClickListener(this);
 
-
-        AssetManager assetManager = this.getAssets();
-        InputStream inputStream = null;
-        InputStream inputStreamDepth = null;
-        InputStream inputStreamMaterial = null;
-        try {
-            inputStream = assetManager.open("input.jpg");
-            inputStreamDepth = assetManager.open("depth.png");
-            inputStreamMaterial = assetManager.open("material.png");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        bitmap = BitmapFactory.decodeStream(inputStream);
-        depth = BitmapFactory.decodeStream(inputStreamDepth);
-        material = BitmapFactory.decodeStream(inputStreamMaterial);
-
+        bitmap = getBitmapFromAssets("input.jpg");
+        depth = getBitmapFromAssets("depth.png");
+        material1 = getBitmapFromAssets("蝴蝶 (1).png");
+        material2 = getBitmapFromAssets("蝴蝶 (2).png");
+        material3 = getBitmapFromAssets("蝴蝶 (3).png");
+        material4 = getBitmapFromAssets("蝴蝶 (4).png");
+        material5 = getBitmapFromAssets("蝴蝶 (5).png");
         Pair<ArrayList<Float>, ArrayList<Float>> shift = getShift(currentDirection, 0.5f, 20);
         xShift = shift.first;
         yShift = shift.second;
+
+        ArrayList<Pair<Integer, Float>> materialTextureAndDepth = new ArrayList<>();
 
 
         mGLSurfaceView = findViewById(R.id.gl_surface_view);
@@ -110,7 +121,16 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             public void onSurfaceCreated(GL10 gl, EGLConfig config) {
                 bitmapTextureID = BaseGLUtils.createTextures2DWithBitmap(bitmap, GLES20.GL_RGBA);
                 depthTextureID = BaseGLUtils.createTextures2DWithBitmap(depth, GLES20.GL_RGBA);
-                materialTextureID = BaseGLUtils.createTextures2DWithBitmap(material, GLES20.GL_RGBA);
+                materialTextureID1 = BaseGLUtils.createTextures2DWithBitmap(material1, GLES20.GL_RGBA);
+                materialTextureID2 = BaseGLUtils.createTextures2DWithBitmap(material2, GLES20.GL_RGBA);
+                materialTextureID3 = BaseGLUtils.createTextures2DWithBitmap(material3, GLES20.GL_RGBA);
+                materialTextureID4 = BaseGLUtils.createTextures2DWithBitmap(material4, GLES20.GL_RGBA);
+                materialTextureID5 = BaseGLUtils.createTextures2DWithBitmap(material5, GLES20.GL_RGBA);
+                materialTextureAndDepth.add(Pair.create(materialTextureID1, materialDepth1));
+                materialTextureAndDepth.add(Pair.create(materialTextureID2, materialDepth2));
+                materialTextureAndDepth.add(Pair.create(materialTextureID3, materialDepth3));
+                materialTextureAndDepth.add(Pair.create(materialTextureID4, materialDepth4));
+                materialTextureAndDepth.add(Pair.create(materialTextureID5, materialDepth5));
                 base3DPainter.init(bitmap.getWidth(), bitmap.getHeight());
                 baseDilateFilter.init(bitmap.getWidth(), bitmap.getHeight());
                 baseGaussianBlurFilter.init(bitmap.getWidth(), bitmap.getHeight());
@@ -135,21 +155,22 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                                         surfaceWidth,
                                         surfaceHeight);
                     } else {
-//                    currentShiftIndex++;
-//                    if (currentShiftIndex >= xShift.size()) {
-//                        currentShiftIndex = 0;
-//                    }
+                        currentShiftIndex++;
+                        if (currentShiftIndex >= xShift.size()) {
+                            currentShiftIndex = 0;
+                        }
 //                int cameraOutputTexture = mBaseCamera.render();
 //                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
 //                mBaseRectPainter.setRectPoints(new float[] {0.25f, 0.25f, 0.75f, 0.75f, 0.3f, 0.3f, 0.6f, 0.6f});
-                        int maxDepthTextureID = baseGaussianBlurFilter.render(depthTextureID);
-//                    int texture = base3DPainter
-//                            .render(bitmapTextureID, depthTextureID, materialTextureID,
-//                                    xShift.get(currentShiftIndex), yShift.get(currentShiftIndex));
+                        int dilateDepthTextureID = baseDilateFilter.render(depthTextureID);
+                        int dilateAndBlurDepthTextureID = baseGaussianBlurFilter.render(dilateDepthTextureID);
+                    int texture = base3DPainter
+                            .render(bitmapTextureID, dilateAndBlurDepthTextureID, depthTextureID, materialTextureAndDepth,
+                                    xShift.get(currentShiftIndex), yShift.get(currentShiftIndex));
 //                int pointOutTexture = mBasePointPainter.renderToInnerFBO(bitmapTextureID, bitmap.getWidth(), bitmap.getHeight());
 //                int rectOutTexture = mBaseRectPainter.renderToInnerFBO(pointOutTexture, mBasePointPainter.getOutputTextureWidth(), mBasePointPainter.getOutputTextureHeight());
                         mBase2DTexturePainter
-                                .render(maxDepthTextureID, bitmap.getWidth(), bitmap.getHeight(),
+                                .render(texture, bitmap.getWidth(), bitmap.getHeight(),
                                         surfaceWidth,
                                         surfaceHeight);
                     }
@@ -251,6 +272,9 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         if (v.equals(mSwitchCameraFacingButton)) {
             showOrigin = !showOrigin;
         }
+        if (v.equals(mChangeCameraRatioButton)) {
+            currentShiftIndex++;
+        }
 //        if (v.equals(mSwitchCameraFacingButton)) {
 //            mBaseCamera.switchCameraFacing();
 //        } else if (v.equals(mChangeCameraRatioButton)) {
@@ -308,5 +332,16 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             }
         }
         return Pair.create(xShift, yShift);
+    }
+
+    private Bitmap getBitmapFromAssets(String path) {
+        AssetManager assetManager = this.getAssets();
+        InputStream inputStream = null;
+        try {
+            inputStream = assetManager.open(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return BitmapFactory.decodeStream(inputStream);
     }
 }
