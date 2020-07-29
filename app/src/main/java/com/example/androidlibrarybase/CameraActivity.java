@@ -3,7 +3,13 @@ package com.example.androidlibrarybase;
 import android.content.res.AssetManager;
 import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
+import android.os.Build.VERSION_CODES;
+import android.util.Log;
 import android.util.Pair;
+import android.widget.SeekBar;
+import android.widget.SeekBar.OnSeekBarChangeListener;
+import android.widget.TextView;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.graphics.Bitmap;
@@ -25,16 +31,39 @@ import com.example.librarybase.opengl.BaseRectPainter;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-public class CameraActivity extends AppCompatActivity implements View.OnClickListener {
+public class CameraActivity extends AppCompatActivity implements View.OnClickListener, OnSeekBarChangeListener {
 
     private Button mSwitchCameraFacingButton;
     private Button mChangeCameraRatioButton;
     private Button mTakePictureButton;
+
+    private SeekBar eyeX;
+    private SeekBar eyeY;
+    private SeekBar eyeZ;
+    private SeekBar centerX;
+    private SeekBar centerY;
+    private SeekBar centerZ;
+    private SeekBar upX;
+    private SeekBar upY;
+    private SeekBar upZ;
+    static final int RATIO = 100;
+
+    private TextView eyeXTextView;
+    private TextView eyeYTextView;
+    private TextView eyeZTextView;
+    private TextView centerXTextView;
+    private TextView centerYTextView;
+    private TextView centerZTextView;
+    private TextView upXTextView;
+    private TextView upYTextView;
+    private TextView upZTextView;
+
 
     private GLSurfaceView mGLSurfaceView;
     private int surfaceWidth = 0;
@@ -90,10 +119,87 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
     BasePerspectiveFilter basePerspectiveFilter = new BasePerspectiveFilter();
 
+    @RequiresApi(api = VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
+
+        eyeXTextView = findViewById(R.id.textView_eyeX);
+        eyeYTextView = findViewById(R.id.textView_eyeY);
+        eyeZTextView = findViewById(R.id.textView_eyeZ);
+        centerXTextView = findViewById(R.id.textView_centerX);
+        centerYTextView = findViewById(R.id.textView_centerY);
+        centerZTextView = findViewById(R.id.textView_centerZ);
+        upXTextView = findViewById(R.id.textView_upX);
+        upYTextView = findViewById(R.id.textView_upY);
+        upZTextView = findViewById(R.id.textView_upZ);
+
+        eyeX = findViewById(R.id.seekBar_eyeX);
+        eyeY = findViewById(R.id.seekBar_eyeY);
+        eyeZ = findViewById(R.id.seekBar_eyeZ);
+        centerX = findViewById(R.id.seekBar_centerX);
+        centerY = findViewById(R.id.seekBar_centerY);
+        centerZ = findViewById(R.id.seekBar_centerZ);
+        upX = findViewById(R.id.seekBar_upX);
+        upY = findViewById(R.id.seekBar_upY);
+        upZ = findViewById(R.id.seekBar_upZ);
+
+        eyeX.setOnSeekBarChangeListener(this);
+        eyeY.setOnSeekBarChangeListener(this);
+        eyeZ.setOnSeekBarChangeListener(this);
+        centerX.setOnSeekBarChangeListener(this);
+        centerY.setOnSeekBarChangeListener(this);
+        centerZ.setOnSeekBarChangeListener(this);
+        upX.setOnSeekBarChangeListener(this);
+        upY.setOnSeekBarChangeListener(this);
+        upZ.setOnSeekBarChangeListener(this);
+
+
+        eyeX.setMin((int)(-0.1 * RATIO));
+        eyeX.setMax((int)(0.1 * RATIO));
+        eyeY.setMin((int)(-0.1 * RATIO));
+        eyeY.setMax((int)(0.1 * RATIO));
+        eyeZ.setMin(-3 * RATIO);
+        eyeZ.setMax(3 * RATIO);
+
+        eyeX.setProgress(0 * RATIO);
+        eyeY.setProgress(0 * RATIO);
+        eyeZ.setProgress(-2 * RATIO);
+
+        centerX.setMin(-1 * RATIO);
+        centerX.setMax(1 * RATIO);
+        centerY.setMin(-1 * RATIO);
+        centerY.setMax(1 * RATIO);
+        centerZ.setMin(-1 * RATIO);
+        centerZ.setMax(1 * RATIO);
+
+        centerX.setProgress(0 * RATIO);
+        centerY.setProgress(0 * RATIO);
+        centerZ.setProgress(0 * RATIO);
+
+        upX.setMin(-1 * RATIO);
+        upX.setMax(1 * RATIO);
+        upY.setMin(-1 * RATIO);
+        upY.setMax(1 * RATIO);
+        upZ.setMin(-1 * RATIO);
+        upZ.setMax(1 * RATIO);
+
+        upX.setProgress(0 * RATIO);
+        upY.setProgress(1 * RATIO);
+        upZ.setProgress(0 * RATIO);
+
+
+        eyeX = findViewById(R.id.seekBar_eyeX);
+        eyeY = findViewById(R.id.seekBar_eyeY);
+        eyeZ = findViewById(R.id.seekBar_eyeZ);
+        centerX = findViewById(R.id.seekBar_centerX);
+        centerY = findViewById(R.id.seekBar_centerY);
+        centerZ = findViewById(R.id.seekBar_centerZ);
+        upX = findViewById(R.id.seekBar_upX);
+        upY = findViewById(R.id.seekBar_upY);
+        upZ = findViewById(R.id.seekBar_upZ);
+
 
         mSwitchCameraFacingButton = findViewById(R.id.switch_camera_facing);
         mSwitchCameraFacingButton.setOnClickListener(this);
@@ -154,7 +260,10 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             public void onDrawFrame(GL10 gl) {
                 synchronized (shiftLock) {
                     if (showOrigin) {
-                        int texture = basePerspectiveFilter.render(bitmapTextureID);
+                        int texture = basePerspectiveFilter.render(bitmapTextureID,
+                                eyeX.getProgress() / (float)RATIO, eyeY.getProgress() / (float)RATIO, eyeZ.getProgress() / (float)RATIO,
+                                centerX.getProgress() / (float)RATIO, centerY.getProgress() / (float)RATIO, centerZ.getProgress() / (float)RATIO,
+                                upX.getProgress() / (float)RATIO, upY.getProgress() / (float)RATIO, upZ.getProgress() / (float)RATIO);
                         mBase2DTexturePainter
                                 .render(texture, bitmap.getWidth(), bitmap.getHeight(),
                                         surfaceWidth, surfaceHeight);
@@ -351,5 +460,29 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             e.printStackTrace();
         }
         return BitmapFactory.decodeStream(inputStream);
+    }
+
+    @Override
+    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+        DecimalFormat decimalFormat = new DecimalFormat("0.0");
+        eyeXTextView.setText(decimalFormat.format(eyeX.getProgress() / (float)RATIO));
+        eyeYTextView.setText(decimalFormat.format(eyeY.getProgress() / (float)RATIO));
+        eyeZTextView.setText(decimalFormat.format(eyeZ.getProgress() / (float)RATIO));
+        centerXTextView.setText(decimalFormat.format(centerX.getProgress() / (float)RATIO));
+        centerYTextView.setText(decimalFormat.format(centerY.getProgress() / (float)RATIO));
+        centerZTextView.setText(decimalFormat.format(centerZ.getProgress() / (float)RATIO));
+        upXTextView.setText(decimalFormat.format(upX.getProgress() / (float)RATIO));
+        upYTextView.setText(decimalFormat.format(upY.getProgress() / (float)RATIO));
+        upZTextView.setText(decimalFormat.format(upZ.getProgress() / (float)RATIO));
+    }
+
+    @Override
+    public void onStartTrackingTouch(SeekBar seekBar) {
+
+    }
+
+    @Override
+    public void onStopTrackingTouch(SeekBar seekBar) {
+
     }
 }

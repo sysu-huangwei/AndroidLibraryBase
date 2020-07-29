@@ -2,7 +2,6 @@ package com.example.librarybase.opengl;
 
 import android.opengl.GLES20;
 import android.opengl.Matrix;
-import com.example.librarybase.opengl.BasePainter.BaseOrientationEnum;
 import java.nio.FloatBuffer;
 
 /**
@@ -125,7 +124,10 @@ public class BasePerspectiveFilter {
         height = 0;
     }
 
-    public int render(int inputTexture) {
+    public int render(int inputTexture,
+            float eyeX, float eyeY, float eyeZ,
+            float centerX, float centerY, float centerZ,
+            float upX, float upY, float upZ) {
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBufferID);
         GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outputTextureID, 0);
 
@@ -153,12 +155,55 @@ public class BasePerspectiveFilter {
 
         // 计算和传入变换矩阵
         //相对于屏幕坐标系将摄像头固定在（0，0，-1）方向，看向屏幕正中点（0，0，0），以屏幕向上为正方向（0，1，0）
-        Matrix.setLookAtM(viewMatrix, 0, 0, 0, -2, 0, 0f, 0, 0f, 1f, 0f);
+        Matrix.setLookAtM(viewMatrix, 0, eyeX, eyeY, eyeZ, centerX, centerY, centerZ, upX, upY, upZ);
         //创建一个透视视景体
         //注意：near,far都必须大于0，且二者不能相等，left、right、bottom、top 是near的left和right坐标
         //但是由于相机视点为（0，0，-1）而屏幕应该显示的是正方向（0，0，x）x大于0的方向的画面，所有left对应的屏幕坐标应该为负，right对应的坐标系为正，呈左右翻转的效果。
         //将near设置为1，far设置为2。由此可以得到视图可见区域为由视点（0，0，-1）出发的距离为1-2的区域内的物体。（注意不是由0，0，0点出发距离1-2的区域）。
-        Matrix.frustumM(projMatrix, 0, 1.0f, -1.0f, -1, 1, 1, 3);
+
+
+        double degreeX = Math.atan(Math.abs(eyeX) / Math.abs(eyeZ));
+        double distanceX = Math.sqrt(eyeX * eyeX + eyeZ * eyeZ);
+        double nearX = distanceX - Math.sin(degreeX);
+        double farX = distanceX + Math.sin(degreeX);
+        double left;
+        double right;
+        if (eyeX < 0) {
+            left = Math.cos(degreeX);
+            right = -1.0 * nearX / farX * Math.cos(degreeX);
+        } else {
+            left = nearX / farX * Math.cos(degreeX);
+            right = -1.0 * Math.cos(degreeX);
+        }
+
+        double degreeY = Math.atan(Math.abs(eyeY) / Math.abs(eyeZ));
+        double distanceY = Math.sqrt(eyeY * eyeY + eyeZ * eyeZ);
+        double nearY = distanceY - Math.sin(degreeY);
+        double farY = distanceY + Math.sin(degreeY);
+        double top;
+        double bottom;
+        if (eyeY < 0) {
+            top = nearY / farY * Math.cos(degreeY);
+            bottom = -1.0 * Math.cos(degreeY);
+        } else {
+            top = Math.cos(degreeY);
+            bottom = -1.0 * nearY / farY * Math.cos(degreeY);
+        }
+
+
+        double distanceToZero = Math.sqrt(eyeX * eyeX + eyeY * eyeY + eyeZ * eyeZ);
+        double distanceInXY = Math.sqrt(2.0);
+        double distanceToNearest = Math.sqrt((Math.abs(eyeX) - 1.0) * (Math.abs(eyeX) - 1.0) + (Math.abs(eyeY) - 1.0) * (Math.abs(eyeY) - 1.0) + eyeZ * eyeZ);
+        double cos = (distanceToZero * distanceToZero + distanceToNearest * distanceToNearest - distanceInXY * distanceInXY) / (2.0 * distanceToZero * distanceToNearest);
+
+        double near = distanceToNearest * cos;//Math.min(nearX, nearY);
+        double far = Math.max(farX, farY) * 2;
+
+
+        float cut = 0.95f;//(float)Math.sqrt(eyeX * eyeX + eyeY * eyeY);
+
+//        Matrix.frustumM(projMatrix, 0, 1.0f, -1.0f, -1, 1, 1, 3);
+        Matrix.frustumM(projMatrix, 0, (float)left * cut, (float)right * cut, (float)bottom * cut, (float)top * cut, (float)near, (float)far);
         // Calculate the projection and view transformation
         Matrix.multiplyMM(mvpMatrix, 0, projMatrix, 0, viewMatrix, 0);
         GLES20.glUniformMatrix4fv(mvpMatrixUniform, 1, false, mvpMatrix, 0);

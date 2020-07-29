@@ -26,14 +26,187 @@
         app:layout_constraintLeft_toRightOf="@+id/switch_camera_facing"
         app:layout_constraintRight_toRightOf="parent" />
 
+    <SeekBar
+        android:id="@+id/seekBar_eyeX"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@+id/textView_eyeX"
+        app:layout_constraintTop_toBottomOf="@+id/switch_camera_facing" />
+
+    <TextView
+        android:id="@+id/textView_eyeX"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/seekBar_eyeX"
+        app:layout_constraintRight_toLeftOf="@+id/seekBar_centerX"
+        app:layout_constraintTop_toBottomOf="@+id/switch_camera_facing" />
+
+    <SeekBar
+        android:id="@+id/seekBar_centerX"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/textView_eyeX"
+        app:layout_constraintRight_toLeftOf="@+id/textView_centerX"
+        app:layout_constraintTop_toBottomOf="@+id/switch_camera_facing" />
+
+    <TextView
+        android:id="@+id/textView_centerX"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/seekBar_centerX"
+        app:layout_constraintRight_toLeftOf="@+id/seekBar_upX"
+        app:layout_constraintTop_toBottomOf="@+id/switch_camera_facing" />
+
+    <SeekBar
+        android:id="@+id/seekBar_upX"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/textView_centerX"
+        app:layout_constraintTop_toBottomOf="@+id/switch_camera_facing"
+        app:layout_constraintRight_toLeftOf="@+id/textView_upX"/>
+
+    <TextView
+        android:id="@+id/textView_upX"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/seekBar_upX"
+        app:layout_constraintTop_toBottomOf="@+id/switch_camera_facing"
+        app:layout_constraintRight_toRightOf="parent"/>
+
+    <SeekBar
+        android:id="@+id/seekBar_eyeY"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@+id/textView_eyeY"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_eyeX" />
+
+    <TextView
+        android:id="@+id/textView_eyeY"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/seekBar_eyeY"
+        app:layout_constraintRight_toLeftOf="@+id/seekBar_centerY"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_eyeX" />
+
+    <SeekBar
+        android:id="@+id/seekBar_centerY"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/textView_eyeY"
+        app:layout_constraintRight_toLeftOf="@+id/textView_centerY"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_eyeX" />
+
+    <TextView
+        android:id="@+id/textView_centerY"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/seekBar_centerY"
+        app:layout_constraintRight_toLeftOf="@+id/seekBar_upY"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_eyeX" />
+
+    <SeekBar
+        android:id="@+id/seekBar_upY"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/textView_centerY"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_eyeX"
+        app:layout_constraintRight_toLeftOf="@+id/textView_upY"/>
+
+    <TextView
+        android:id="@+id/textView_upY"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/seekBar_upY"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_eyeX"
+        app:layout_constraintRight_toRightOf="parent"/>
+
+    <SeekBar
+        android:id="@+id/seekBar_eyeZ"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@+id/textView_eyeZ"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_eyeY" />
+
+    <TextView
+        android:id="@+id/textView_eyeZ"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/seekBar_eyeZ"
+        app:layout_constraintRight_toLeftOf="@+id/seekBar_centerZ"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_eyeY" />
+
+    <SeekBar
+        android:id="@+id/seekBar_centerZ"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/textView_eyeZ"
+        app:layout_constraintRight_toLeftOf="@+id/textView_centerZ"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_eyeY" />
+
+    <TextView
+        android:id="@+id/textView_centerZ"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/seekBar_centerZ"
+        app:layout_constraintRight_toLeftOf="@+id/seekBar_upZ"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_eyeY" />
+
+    <SeekBar
+        android:id="@+id/seekBar_upZ"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/textView_centerZ"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_eyeY"
+        app:layout_constraintRight_toLeftOf="@+id/textView_upZ"/>
+
+    <TextView
+        android:id="@+id/textView_upZ"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/seekBar_upZ"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_eyeY"
+        app:layout_constraintRight_toRightOf="parent"/>
+
     <android.opengl.GLSurfaceView
         android:id="@+id/gl_surface_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@+id/switch_camera_facing"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_eyeZ"
         app:layout_constraintBottom_toTopOf="@+id/take_picture"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent" />
+
+
 
     <Button
         android:id="@+id/take_picture"
