@@ -260,37 +260,41 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             public void onDrawFrame(GL10 gl) {
                 synchronized (shiftLock) {
                     if (showOrigin) {
-                        int texture = basePerspectiveFilter.render(bitmapTextureID,
-                                eyeX.getProgress() / (float)RATIO, eyeY.getProgress() / (float)RATIO, eyeZ.getProgress() / (float)RATIO,
-                                centerX.getProgress() / (float)RATIO, centerY.getProgress() / (float)RATIO, centerZ.getProgress() / (float)RATIO,
-                                upX.getProgress() / (float)RATIO, upY.getProgress() / (float)RATIO, upZ.getProgress() / (float)RATIO);
+//                        int texture = basePerspectiveFilter.render(bitmapTextureID,
+//                                eyeX.getProgress() / (float)RATIO, eyeY.getProgress() / (float)RATIO, eyeZ.getProgress() / (float)RATIO,
+//                                centerX.getProgress() / (float)RATIO, centerY.getProgress() / (float)RATIO, centerZ.getProgress() / (float)RATIO,
+//                                upX.getProgress() / (float)RATIO, upY.getProgress() / (float)RATIO, upZ.getProgress() / (float)RATIO);
+//                        mBase2DTexturePainter
+//                                .render(texture, bitmap.getWidth(), bitmap.getHeight(),
+//                                        surfaceWidth, surfaceHeight);
+//                    } else {
+//                        mBase2DTexturePainter
+//                                .render(bitmapTextureID, bitmap.getWidth(), bitmap.getHeight(),
+//                                        surfaceWidth, surfaceHeight);
+//                    }
+                        currentShiftIndex++;
+                        if (currentShiftIndex >= xShift.size()) {
+                            currentShiftIndex = 0;
+                        }
+//                int cameraOutputTexture = mBaseCamera.render();
+//                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
+//                mBaseRectPainter.setRectPoints(new float[] {0.25f, 0.25f, 0.75f, 0.75f, 0.3f, 0.3f, 0.6f, 0.6f});
+                        int dilateDepthTextureID = baseDilateFilter.render(depthTextureID);
+                        int dilateAndBlurDepthTextureID = baseGaussianBlurFilter.render(dilateDepthTextureID);
+                    int texture = base3DPainter
+                            .render(bitmapTextureID, dilateAndBlurDepthTextureID, depthTextureID, materialTextureAndDepth,
+                                    xShift.get(currentShiftIndex), yShift.get(currentShiftIndex));
+//                int pointOutTexture = mBasePointPainter.renderToInnerFBO(bitmapTextureID, bitmap.getWidth(), bitmap.getHeight());
+//                int rectOutTexture = mBaseRectPainter.renderToInnerFBO(pointOutTexture, mBasePointPainter.getOutputTextureWidth(), mBasePointPainter.getOutputTextureHeight());
                         mBase2DTexturePainter
                                 .render(texture, bitmap.getWidth(), bitmap.getHeight(),
-                                        surfaceWidth, surfaceHeight);
+                                        surfaceWidth,
+                                        surfaceHeight);
                     } else {
                         mBase2DTexturePainter
                                 .render(bitmapTextureID, bitmap.getWidth(), bitmap.getHeight(),
                                         surfaceWidth, surfaceHeight);
                     }
-//                        currentShiftIndex++;
-//                        if (currentShiftIndex >= xShift.size()) {
-//                            currentShiftIndex = 0;
-//                        }
-////                int cameraOutputTexture = mBaseCamera.render();
-////                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
-////                mBaseRectPainter.setRectPoints(new float[] {0.25f, 0.25f, 0.75f, 0.75f, 0.3f, 0.3f, 0.6f, 0.6f});
-//                        int dilateDepthTextureID = baseDilateFilter.render(depthTextureID);
-//                        int dilateAndBlurDepthTextureID = baseGaussianBlurFilter.render(dilateDepthTextureID);
-//                    int texture = base3DPainter
-//                            .render(bitmapTextureID, dilateAndBlurDepthTextureID, depthTextureID, materialTextureAndDepth,
-//                                    xShift.get(currentShiftIndex), yShift.get(currentShiftIndex));
-////                int pointOutTexture = mBasePointPainter.renderToInnerFBO(bitmapTextureID, bitmap.getWidth(), bitmap.getHeight());
-////                int rectOutTexture = mBaseRectPainter.renderToInnerFBO(pointOutTexture, mBasePointPainter.getOutputTextureWidth(), mBasePointPainter.getOutputTextureHeight());
-//                        mBase2DTexturePainter
-//                                .render(texture, bitmap.getWidth(), bitmap.getHeight(),
-//                                        surfaceWidth,
-//                                        surfaceHeight);
-//                    }
 
                 }
             }
@@ -418,32 +422,43 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 //        }
     }
 
+    /**
+     * 获取前景后景坐标偏移量
+     * @param direction 旋转方式：1 左右 2 上下 3 转圈
+     * @param threshold 最大偏移量
+     * @param step 1/4周期的步长
+     * @return first：x方向偏移量  second：y方向偏移量
+     */
     private static Pair<ArrayList<Float>, ArrayList<Float>> getShift(int direction, float threshold, int step) {
         ArrayList<Float> xShift = new ArrayList<>();
         ArrayList<Float> yShift = new ArrayList<>();
-        if (direction == 1) {
-            ArrayList<Float> left = new ArrayList<>();
-            ArrayList<Float> right = new ArrayList<>();
+        if (direction == 1 || direction == 2) {
+            ArrayList<Float> positive = new ArrayList<>();
+            ArrayList<Float> negative = new ArrayList<>();
             for (float f = 0.0f; f < threshold; f += (threshold / step)) {
-                left.add(f);
-                right.add(-f);
+                positive.add(f);
+                negative.add(-f);
             }
-            xShift.addAll(left);
-            Collections.reverse(left);
-            xShift.addAll(left);
-            xShift.addAll(right);
-            Collections.reverse(right);
-            xShift.addAll(right);
-            yShift.addAll(xShift);
-            Collections.fill(yShift, 0.0f);
-        } else if (direction == 2) {
-            for (float f = -threshold; f < threshold; f += (2.0f * threshold / step)) {
-                xShift.add(0.0f);
-                yShift.add(-f);
+            ArrayList<Float> animalFunction = new ArrayList<>();
+            animalFunction.addAll(positive);
+            Collections.reverse(positive);
+            animalFunction.addAll(positive);
+            animalFunction.addAll(negative);
+            Collections.reverse(negative);
+            animalFunction.addAll(negative);
+
+            xShift.addAll(animalFunction);
+            yShift.addAll(animalFunction);
+
+            if (direction == 1) {
+                Collections.fill(yShift, 0.0f);
+            } else {
+                Collections.fill(xShift, 0.0f);
             }
-        } else {
+
+        } else if (direction == 3) {
             float fullDeg = (float) Math.PI * 2.0f;
-            for (float f = 0.0f; f < fullDeg; f+= fullDeg / step) {
+            for (float f = 0.0f; f < fullDeg; f += fullDeg / step / 4.0f) {
                 xShift.add(threshold * (float) Math.cos(f));
                 yShift.add(threshold * (float) Math.sin(f));
             }
