@@ -2,6 +2,7 @@ package com.example.librarybase.opengl;
 
 import android.opengl.GLES20;
 import android.opengl.Matrix;
+import android.util.Log;
 import java.nio.FloatBuffer;
 
 /**
@@ -127,7 +128,8 @@ public class BasePerspectiveFilter {
     public int render(int inputTexture,
             float eyeX, float eyeY, float eyeZ,
             float centerX, float centerY, float centerZ,
-            float upX, float upY, float upZ) {
+            float upX, float upY, float upZ,
+            float xOffset, float yOffset, float threshold) {
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBufferID);
         GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outputTextureID, 0);
 
@@ -153,6 +155,11 @@ public class BasePerspectiveFilter {
         GLES20.glEnableVertexAttribArray(textureCoordinateAttribute);
         GLES20.glVertexAttribPointer(textureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 8, mTextureCoordinatesBuffer);
 
+        float scale = 0.05f;
+        eyeX = xOffset / threshold * scale;
+        eyeY = yOffset / threshold * scale;
+
+        eyeZ = -1.0f * (float)Math.sqrt(eyeZ * eyeZ - eyeX * eyeX);
         // 计算和传入变换矩阵
         //相对于屏幕坐标系将摄像头固定在（0，0，-1）方向，看向屏幕正中点（0，0，0），以屏幕向上为正方向（0，1，0）
         Matrix.setLookAtM(viewMatrix, 0, eyeX, eyeY, eyeZ, centerX, centerY, centerZ, upX, upY, upZ);
@@ -162,6 +169,12 @@ public class BasePerspectiveFilter {
         //将near设置为1，far设置为2。由此可以得到视图可见区域为由视点（0，0，-1）出发的距离为1-2的区域内的物体。（注意不是由0，0，0点出发距离1-2的区域）。
 
 
+
+        Log.e("hw1", "render: eyeX = " + eyeX + " eyeY = " + eyeY);
+
+        double cutY = 1.0;
+        double cutX = 1.0;
+
         double degreeX = Math.atan(Math.abs(eyeX) / Math.abs(eyeZ));
         double distanceX = Math.sqrt(eyeX * eyeX + eyeZ * eyeZ);
         double nearX = distanceX - Math.sin(degreeX);
@@ -169,12 +182,14 @@ public class BasePerspectiveFilter {
         double left;
         double right;
         if (eyeX < 0) {
-            left = Math.cos(degreeX);
+            left = Math.cos(degreeX);//nearX / farX * Math.cos(degreeX);
             right = -1.0 * nearX / farX * Math.cos(degreeX);
         } else {
             left = nearX / farX * Math.cos(degreeX);
             right = -1.0 * Math.cos(degreeX);
         }
+
+        cutY = nearX / farX * Math.cos(degreeX);
 
         double degreeY = Math.atan(Math.abs(eyeY) / Math.abs(eyeZ));
         double distanceY = Math.sqrt(eyeY * eyeY + eyeZ * eyeZ);
@@ -190,6 +205,8 @@ public class BasePerspectiveFilter {
             bottom = -1.0 * nearY / farY * Math.cos(degreeY);
         }
 
+        cutX = nearY / farY * Math.cos(degreeY);
+
 
         double distanceToZero = Math.sqrt(eyeX * eyeX + eyeY * eyeY + eyeZ * eyeZ);
         double distanceInXY = Math.sqrt(2.0);
@@ -200,10 +217,14 @@ public class BasePerspectiveFilter {
         double far = Math.max(farX, farY) * 2;
 
 
-        float cut = 0.95f;//(float)Math.sqrt(eyeX * eyeX + eyeY * eyeY);
+        float cutMin = 0.96f;
+        float d = (float)Math.sqrt(eyeX * eyeX + eyeY * eyeY) / scale;
+        float cut = (0.98f - cutMin) * d + cutMin;
+
+        Log.e("hw1", "render: cut = " + cut + " cutX = " + cutX + " left = " + left + " right = " + right + " cutY = " + cutY + " top = " + top + " bottom = " + bottom + " near = " + near + " far = " + far);
 
 //        Matrix.frustumM(projMatrix, 0, 1.0f, -1.0f, -1, 1, 1, 3);
-        Matrix.frustumM(projMatrix, 0, (float)left * cut, (float)right * cut, (float)bottom * cut, (float)top * cut, (float)near, (float)far);
+        Matrix.frustumM(projMatrix, 0, (float)left * cut * (float)cutX, (float)right * cut * (float)cutX, (float)bottom * cut * (float)cutY, (float)top * cut * (float)cutY, (float)near, (float)far);
         // Calculate the projection and view transformation
         Matrix.multiplyMM(mvpMatrix, 0, projMatrix, 0, viewMatrix, 0);
         GLES20.glUniformMatrix4fv(mvpMatrixUniform, 1, false, mvpMatrix, 0);
