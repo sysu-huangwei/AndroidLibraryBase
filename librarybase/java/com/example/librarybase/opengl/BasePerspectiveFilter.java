@@ -126,10 +126,13 @@ public class BasePerspectiveFilter {
     }
 
     public int render(int inputTexture,
-            float eyeX, float eyeY, float eyeZ,
-            float centerX, float centerY, float centerZ,
-            float upX, float upY, float upZ,
-            float xOffset, float yOffset, float threshold) {
+            float eyeX, float eyeY,
+            float xOffset, float yOffset, float threshold, float scale) {
+
+        if (scale <= 0) {
+            return inputTexture;
+        }
+
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBufferID);
         GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outputTextureID, 0);
 
@@ -155,9 +158,17 @@ public class BasePerspectiveFilter {
         GLES20.glEnableVertexAttribArray(textureCoordinateAttribute);
         GLES20.glVertexAttribPointer(textureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 8, mTextureCoordinatesBuffer);
 
-        float scale = 0.05f;
+//        float scale = 0.03f;
         eyeX = xOffset / threshold * scale;
         eyeY = yOffset / threshold * scale;
+
+        float eyeZ = -2.0f;
+        float centerX = 0.0f;
+        float centerY = 0.0f;
+        float centerZ = 0.0f;
+        float upX = 0.0f;
+        float upY = 1.0f;
+        float upZ = 0.0f;
 
         eyeZ = -1.0f * (float)Math.sqrt(eyeZ * eyeZ - eyeX * eyeX);
         // 计算和传入变换矩阵
@@ -182,7 +193,7 @@ public class BasePerspectiveFilter {
         double left;
         double right;
         if (eyeX < 0) {
-            left = Math.cos(degreeX);//nearX / farX * Math.cos(degreeX);
+            left = nearX / farX * Math.cos(degreeX);//nearX / farX * Math.cos(degreeX);
             right = -1.0 * nearX / farX * Math.cos(degreeX);
         } else {
             left = nearX / farX * Math.cos(degreeX);
@@ -217,9 +228,10 @@ public class BasePerspectiveFilter {
         double far = Math.max(farX, farY) * 2;
 
 
-        float cutMin = 0.96f;
+        float cutMax = 1.0f;
+        float cutMin = 0.99f;
         float d = (float)Math.sqrt(eyeX * eyeX + eyeY * eyeY) / scale;
-        float cut = (0.98f - cutMin) * d + cutMin;
+        float cut = (cutMax - cutMin) * d + cutMin;
 
         Log.e("hw1", "render: cut = " + cut + " cutX = " + cutX + " left = " + left + " right = " + right + " cutY = " + cutY + " top = " + top + " bottom = " + bottom + " near = " + near + " far = " + far);
 

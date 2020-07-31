@@ -4,7 +4,6 @@ import android.content.res.AssetManager;
 import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
 import android.os.Build.VERSION_CODES;
-import android.util.Log;
 import android.util.Pair;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
@@ -45,24 +44,14 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
     private SeekBar eyeX;
     private SeekBar eyeY;
-    private SeekBar eyeZ;
-    private SeekBar centerX;
-    private SeekBar centerY;
-    private SeekBar centerZ;
-    private SeekBar upX;
-    private SeekBar upY;
-    private SeekBar upZ;
-    static final int RATIO = 100;
+    private SeekBar threeDSeekBar;
+    private SeekBar perspectiveSeekBar;
+    static final int RATIO = 500;
 
     private TextView eyeXTextView;
     private TextView eyeYTextView;
-    private TextView eyeZTextView;
-    private TextView centerXTextView;
-    private TextView centerYTextView;
-    private TextView centerZTextView;
-    private TextView upXTextView;
-    private TextView upYTextView;
-    private TextView upZTextView;
+    private TextView threeDTextView;
+    private TextView perspectiveTextView;
 
 
     private GLSurfaceView mGLSurfaceView;
@@ -77,6 +66,11 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
     BasePointPainter mBasePointPainter = new BasePointPainter();
     BaseRectPainter mBaseRectPainter = new BaseRectPainter();
+
+    String[] imageFileList;
+    String[] depthFileList;
+    int currentFileIndex = 7;
+    volatile boolean isNeedReloadImage = false;
 
     Bitmap bitmap;
     int bitmapTextureID;
@@ -98,11 +92,11 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
     Bitmap material4;
     int materialTextureID4;
-    float materialDepth4 = 1.2f;
+    float materialDepth4 = 1.5f;
 
     Bitmap material5;
     int materialTextureID5;
-    float materialDepth5 = 1.5f;
+    float materialDepth5 = 2.0f;
 
 
     Base3DPainter base3DPainter = new Base3DPainter();
@@ -127,79 +121,28 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
         eyeXTextView = findViewById(R.id.textView_eyeX);
         eyeYTextView = findViewById(R.id.textView_eyeY);
-        eyeZTextView = findViewById(R.id.textView_eyeZ);
-        centerXTextView = findViewById(R.id.textView_centerX);
-        centerYTextView = findViewById(R.id.textView_centerY);
-        centerZTextView = findViewById(R.id.textView_centerZ);
-        upXTextView = findViewById(R.id.textView_upX);
-        upYTextView = findViewById(R.id.textView_upY);
-        upZTextView = findViewById(R.id.textView_upZ);
+        threeDTextView = findViewById(R.id.textView_3D);
+        perspectiveTextView = findViewById(R.id.textView_perspective);
 
         eyeX = findViewById(R.id.seekBar_eyeX);
         eyeY = findViewById(R.id.seekBar_eyeY);
-        eyeZ = findViewById(R.id.seekBar_eyeZ);
-        centerX = findViewById(R.id.seekBar_centerX);
-        centerY = findViewById(R.id.seekBar_centerY);
-        centerZ = findViewById(R.id.seekBar_centerZ);
-        upX = findViewById(R.id.seekBar_upX);
-        upY = findViewById(R.id.seekBar_upY);
-        upZ = findViewById(R.id.seekBar_upZ);
-
-        eyeX.setOnSeekBarChangeListener(this);
-        eyeY.setOnSeekBarChangeListener(this);
-        eyeZ.setOnSeekBarChangeListener(this);
-        centerX.setOnSeekBarChangeListener(this);
-        centerY.setOnSeekBarChangeListener(this);
-        centerZ.setOnSeekBarChangeListener(this);
-        upX.setOnSeekBarChangeListener(this);
-        upY.setOnSeekBarChangeListener(this);
-        upZ.setOnSeekBarChangeListener(this);
-
+        threeDSeekBar = findViewById(R.id.seekBar_3D);
+        perspectiveSeekBar = findViewById(R.id.seekBar_perspective);
 
         eyeX.setMin((int)(-0.1 * RATIO));
         eyeX.setMax((int)(0.1 * RATIO));
         eyeY.setMin((int)(-0.1 * RATIO));
         eyeY.setMax((int)(0.1 * RATIO));
-        eyeZ.setMin(-3 * RATIO);
-        eyeZ.setMax(3 * RATIO);
+        perspectiveSeekBar.setMin(0);
+        perspectiveSeekBar.setMax((int)(0.5 * RATIO));
 
         eyeX.setProgress(0 * RATIO);
         eyeY.setProgress(0 * RATIO);
-        eyeZ.setProgress(-2 * RATIO);
+        perspectiveSeekBar.setProgress((int)(0.03 * RATIO));
 
-        centerX.setMin(-1 * RATIO);
-        centerX.setMax(1 * RATIO);
-        centerY.setMin(-1 * RATIO);
-        centerY.setMax(1 * RATIO);
-        centerZ.setMin(-1 * RATIO);
-        centerZ.setMax(1 * RATIO);
-
-        centerX.setProgress(0 * RATIO);
-        centerY.setProgress(0 * RATIO);
-        centerZ.setProgress(0 * RATIO);
-
-        upX.setMin(-1 * RATIO);
-        upX.setMax(1 * RATIO);
-        upY.setMin(-1 * RATIO);
-        upY.setMax(1 * RATIO);
-        upZ.setMin(-1 * RATIO);
-        upZ.setMax(1 * RATIO);
-
-        upX.setProgress(0 * RATIO);
-        upY.setProgress(1 * RATIO);
-        upZ.setProgress(0 * RATIO);
-
-
-        eyeX = findViewById(R.id.seekBar_eyeX);
-        eyeY = findViewById(R.id.seekBar_eyeY);
-        eyeZ = findViewById(R.id.seekBar_eyeZ);
-        centerX = findViewById(R.id.seekBar_centerX);
-        centerY = findViewById(R.id.seekBar_centerY);
-        centerZ = findViewById(R.id.seekBar_centerZ);
-        upX = findViewById(R.id.seekBar_upX);
-        upY = findViewById(R.id.seekBar_upY);
-        upZ = findViewById(R.id.seekBar_upZ);
-
+        eyeX.setOnSeekBarChangeListener(this);
+        eyeY.setOnSeekBarChangeListener(this);
+        perspectiveSeekBar.setOnSeekBarChangeListener(this);
 
         mSwitchCameraFacingButton = findViewById(R.id.switch_camera_facing);
         mSwitchCameraFacingButton.setOnClickListener(this);
@@ -208,8 +151,14 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         mTakePictureButton = findViewById(R.id.take_picture);
         mTakePictureButton.setOnClickListener(this);
 
-        bitmap = getBitmapFromAssets("input.jpg");
-        depth = getBitmapFromAssets("depth.png");
+        try {
+            imageFileList = this.getAssets().list("自拍");
+            depthFileList = this.getAssets().list("selfie_depth");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        bitmap = getBitmapFromAssets("自拍/" + imageFileList[currentFileIndex]);
+        depth = getBitmapFromAssets("selfie_depth/" + depthFileList[currentFileIndex]);
         material1 = getBitmapFromAssets("蝴蝶 (1).png");
         material2 = getBitmapFromAssets("蝴蝶 (2).png");
         material3 = getBitmapFromAssets("蝴蝶 (3).png");
@@ -259,6 +208,13 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             @Override
             public void onDrawFrame(GL10 gl) {
                 synchronized (shiftLock) {
+                    if (isNeedReloadImage) {
+                        bitmap = getBitmapFromAssets("自拍/" + imageFileList[currentFileIndex]);
+                        depth = getBitmapFromAssets("selfie_depth/" + depthFileList[currentFileIndex]);
+                        bitmapTextureID = BaseGLUtils.createTextures2DWithBitmap(bitmap, GLES20.GL_RGBA);
+                        depthTextureID = BaseGLUtils.createTextures2DWithBitmap(depth, GLES20.GL_RGBA);
+                        isNeedReloadImage = false;
+                    }
                     if (showOrigin) {
                         int dilateDepthTextureID = baseDilateFilter.render(depthTextureID);
                         int dilateAndBlurDepthTextureID = baseGaussianBlurFilter.render(dilateDepthTextureID);
@@ -266,10 +222,8 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                                 .render(bitmapTextureID, dilateAndBlurDepthTextureID, depthTextureID, materialTextureAndDepth,
                                         xShift.get(currentShiftIndex), yShift.get(currentShiftIndex));
                         int perspectiveTextureID = basePerspectiveFilter.render(threeDTextureID,
-                                eyeX.getProgress() / (float)RATIO, eyeY.getProgress() / (float)RATIO, eyeZ.getProgress() / (float)RATIO,
-                                centerX.getProgress() / (float)RATIO, centerY.getProgress() / (float)RATIO, centerZ.getProgress() / (float)RATIO,
-                                upX.getProgress() / (float)RATIO, upY.getProgress() / (float)RATIO, upZ.getProgress() / (float)RATIO,
-                                xShift.get(currentShiftIndex), yShift.get(currentShiftIndex), 0.5f);
+                                eyeX.getProgress() / (float)RATIO, eyeY.getProgress() / (float)RATIO,
+                                xShift.get(currentShiftIndex), yShift.get(currentShiftIndex), 0.5f, perspectiveSeekBar.getProgress() / (float)RATIO);
                         mBase2DTexturePainter
                                 .render(perspectiveTextureID, bitmap.getWidth(), bitmap.getHeight(),
                                         surfaceWidth, surfaceHeight);
@@ -400,7 +354,11 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             showOrigin = !showOrigin;
         }
         if (v.equals(mChangeCameraRatioButton)) {
-            currentShiftIndex++;
+            currentFileIndex++;
+            if (currentFileIndex >= imageFileList.length) {
+                currentFileIndex = 0;
+            }
+            isNeedReloadImage = true;
         }
 //        if (v.equals(mSwitchCameraFacingButton)) {
 //            mBaseCamera.switchCameraFacing();
@@ -485,16 +443,11 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-        DecimalFormat decimalFormat = new DecimalFormat("0.0");
+        DecimalFormat decimalFormat = new DecimalFormat("0.00");
         eyeXTextView.setText(decimalFormat.format(eyeX.getProgress() / (float)RATIO));
         eyeYTextView.setText(decimalFormat.format(eyeY.getProgress() / (float)RATIO));
-        eyeZTextView.setText(decimalFormat.format(eyeZ.getProgress() / (float)RATIO));
-        centerXTextView.setText(decimalFormat.format(centerX.getProgress() / (float)RATIO));
-        centerYTextView.setText(decimalFormat.format(centerY.getProgress() / (float)RATIO));
-        centerZTextView.setText(decimalFormat.format(centerZ.getProgress() / (float)RATIO));
-        upXTextView.setText(decimalFormat.format(upX.getProgress() / (float)RATIO));
-        upYTextView.setText(decimalFormat.format(upY.getProgress() / (float)RATIO));
-        upZTextView.setText(decimalFormat.format(upZ.getProgress() / (float)RATIO));
+        threeDTextView.setText(decimalFormat.format(threeDSeekBar.getProgress() / (float)RATIO));
+        perspectiveTextView.setText(decimalFormat.format(perspectiveSeekBar.getProgress() / (float)RATIO));
     }
 
     @Override
