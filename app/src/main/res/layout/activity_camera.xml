@@ -11,9 +11,19 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:text="切换前后置"
+        android:text="显示原图"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@+id/show_depth" />
+
+    <Button
+        android:id="@+id/show_depth"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="显示景深图"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toRightOf="@+id/switch_camera_facing"
         app:layout_constraintRight_toLeftOf="@+id/change_camera_ratio" />
 
     <Button
@@ -21,9 +31,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:text="切换比例"
+        android:text="切换照片"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintLeft_toRightOf="@+id/switch_camera_facing"
+        app:layout_constraintLeft_toRightOf="@+id/show_depth"
         app:layout_constraintRight_toRightOf="parent" />
 
     <TextView
@@ -143,11 +153,40 @@
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/seekBar_3D" />
 
+    <TextView
+        android:id="@+id/textView_speed_static"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="速度        "
+        android:layout_weight="1"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@+id/seekBar_speed"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_perspective" />
+
+    <SeekBar
+        android:id="@+id/seekBar_speed"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/textView_speed_static"
+        app:layout_constraintRight_toLeftOf="@+id/textView_speed"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_perspective" />
+
+    <TextView
+        android:id="@+id/textView_speed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0.00"
+        android:layout_weight="1"
+        app:layout_constraintLeft_toRightOf="@+id/seekBar_speed"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_perspective" />
+
     <android.opengl.GLSurfaceView
         android:id="@+id/gl_surface_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@+id/seekBar_perspective"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_speed"
         app:layout_constraintBottom_toTopOf="@+id/take_picture"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent" />
@@ -159,7 +198,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:text="拍照"
+        android:text="旋转方式"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent" />

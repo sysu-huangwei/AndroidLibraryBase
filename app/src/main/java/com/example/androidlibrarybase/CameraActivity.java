@@ -39,6 +39,7 @@ import javax.microedition.khronos.opengles.GL10;
 public class CameraActivity extends AppCompatActivity implements View.OnClickListener, OnSeekBarChangeListener {
 
     private Button mSwitchCameraFacingButton;
+    private Button showDepthButton;
     private Button mChangeCameraRatioButton;
     private Button mTakePictureButton;
 
@@ -46,12 +47,14 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     private SeekBar eyeY;
     private SeekBar threeDSeekBar;
     private SeekBar perspectiveSeekBar;
+    private SeekBar speedSeekBar;
     static final int RATIO = 500;
 
     private TextView eyeXTextView;
     private TextView eyeYTextView;
     private TextView threeDTextView;
     private TextView perspectiveTextView;
+    private TextView speedTextView;
 
 
     private GLSurfaceView mGLSurfaceView;
@@ -102,12 +105,15 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     Base3DPainter base3DPainter = new Base3DPainter();
     ArrayList<Float> xShift;
     ArrayList<Float> yShift;
+    float threshold = 0.5f;
+    int step = 20;
     int currentShiftIndex = 0;
     int currentDirection = 1;
     final Object shiftLock = new Object();
 
     BaseDilateFilter baseDilateFilter = new BaseDilateFilter();
     volatile boolean showOrigin = false;
+    volatile boolean showDepth = false;
 
     BaseGaussianBlurFilter baseGaussianBlurFilter = new BaseGaussianBlurFilter();
 
@@ -123,11 +129,13 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         eyeYTextView = findViewById(R.id.textView_eyeY);
         threeDTextView = findViewById(R.id.textView_3D);
         perspectiveTextView = findViewById(R.id.textView_perspective);
+        speedTextView = findViewById(R.id.textView_speed);
 
         eyeX = findViewById(R.id.seekBar_eyeX);
         eyeY = findViewById(R.id.seekBar_eyeY);
         threeDSeekBar = findViewById(R.id.seekBar_3D);
         perspectiveSeekBar = findViewById(R.id.seekBar_perspective);
+        speedSeekBar = findViewById(R.id.seekBar_speed);
 
         eyeX.setMin((int)(-0.1 * RATIO));
         eyeX.setMax((int)(0.1 * RATIO));
@@ -137,25 +145,32 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         threeDSeekBar.setMax((int)(0.1 * RATIO));
         perspectiveSeekBar.setMin(0);
         perspectiveSeekBar.setMax((int)(0.25 * RATIO));
+        speedSeekBar.setMin(0);
+        speedSeekBar.setMax(1 * RATIO);
 
         eyeX.setProgress(0 * RATIO);
         eyeY.setProgress(0 * RATIO);
         threeDSeekBar.setProgress((int)(0.05f * RATIO));
         perspectiveSeekBar.setProgress((int)(0.03 * RATIO));
+        speedSeekBar.setProgress((int)(0.5 * RATIO));
 
         DecimalFormat decimalFormat = new DecimalFormat("0.00");
         eyeXTextView.setText(decimalFormat.format(eyeX.getProgress() / (float)RATIO));
         eyeYTextView.setText(decimalFormat.format(eyeY.getProgress() / (float)RATIO));
         threeDTextView.setText(decimalFormat.format(threeDSeekBar.getProgress() / (float)RATIO));
         perspectiveTextView.setText(decimalFormat.format(perspectiveSeekBar.getProgress() / (float)RATIO));
+        speedTextView.setText(decimalFormat.format(speedSeekBar.getProgress() / (float)RATIO));
 
         eyeX.setOnSeekBarChangeListener(this);
         eyeY.setOnSeekBarChangeListener(this);
         threeDSeekBar.setOnSeekBarChangeListener(this);
         perspectiveSeekBar.setOnSeekBarChangeListener(this);
+        speedSeekBar.setOnSeekBarChangeListener(this);
 
         mSwitchCameraFacingButton = findViewById(R.id.switch_camera_facing);
         mSwitchCameraFacingButton.setOnClickListener(this);
+        showDepthButton = findViewById(R.id.show_depth);
+        showDepthButton.setOnClickListener(this);
         mChangeCameraRatioButton = findViewById(R.id.change_camera_ratio);
         mChangeCameraRatioButton.setOnClickListener(this);
         mTakePictureButton = findViewById(R.id.take_picture);
@@ -174,7 +189,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         material3 = getBitmapFromAssets("蝴蝶 (3).png");
         material4 = getBitmapFromAssets("蝴蝶 (4).png");
         material5 = getBitmapFromAssets("蝴蝶 (5).png");
-        Pair<ArrayList<Float>, ArrayList<Float>> shift = getShift(currentDirection, 0.5f, 20);
+        Pair<ArrayList<Float>, ArrayList<Float>> shift = getShift(currentDirection, threshold, step);
         xShift = shift.first;
         yShift = shift.second;
 
@@ -226,6 +241,14 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                         isNeedReloadImage = false;
                     }
                     if (showOrigin) {
+                        mBase2DTexturePainter
+                                .render(bitmapTextureID, bitmap.getWidth(), bitmap.getHeight(),
+                                        surfaceWidth, surfaceHeight);
+                    } else if (showDepth) {
+                        mBase2DTexturePainter
+                                .render(depthTextureID, bitmap.getWidth(), bitmap.getHeight(),
+                                        surfaceWidth, surfaceHeight);
+                    } else {
                         int dilateDepthTextureID = baseDilateFilter.render(depthTextureID);
                         int dilateAndBlurDepthTextureID = baseGaussianBlurFilter.render(dilateDepthTextureID);
                         int threeDTextureID = base3DPainter
@@ -233,13 +256,9 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                                         xShift.get(currentShiftIndex), yShift.get(currentShiftIndex), threeDSeekBar.getProgress() / (float)RATIO);
                         int perspectiveTextureID = basePerspectiveFilter.render(threeDTextureID,
                                 eyeX.getProgress() / (float)RATIO, eyeY.getProgress() / (float)RATIO,
-                                xShift.get(currentShiftIndex), yShift.get(currentShiftIndex), 0.5f, perspectiveSeekBar.getProgress() / (float)RATIO);
+                                xShift.get(currentShiftIndex), yShift.get(currentShiftIndex), threshold, perspectiveSeekBar.getProgress() / (float)RATIO);
                         mBase2DTexturePainter
                                 .render(perspectiveTextureID, bitmap.getWidth(), bitmap.getHeight(),
-                                        surfaceWidth, surfaceHeight);
-                    } else {
-                        mBase2DTexturePainter
-                                .render(bitmapTextureID, bitmap.getWidth(), bitmap.getHeight(),
                                         surfaceWidth, surfaceHeight);
                     }
                         currentShiftIndex++;
@@ -355,13 +374,22 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                 if (currentDirection > 3) {
                     currentDirection = 1;
                 }
-                Pair<ArrayList<Float>, ArrayList<Float>> shift = getShift(currentDirection, 0.5f, 20);
+                Pair<ArrayList<Float>, ArrayList<Float>> shift = getShift(currentDirection, threshold, step);
                 xShift = shift.first;
                 yShift = shift.second;
             }
         }
         if (v.equals(mSwitchCameraFacingButton)) {
             showOrigin = !showOrigin;
+            if (showOrigin) {
+                showDepth = false;
+            }
+        }
+        if (v.equals(showDepthButton)) {
+            showDepth = !showDepth;
+            if (showDepth) {
+                showOrigin = false;
+            }
         }
         if (v.equals(mChangeCameraRatioButton)) {
             currentFileIndex++;
@@ -458,6 +486,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         eyeYTextView.setText(decimalFormat.format(eyeY.getProgress() / (float)RATIO));
         threeDTextView.setText(decimalFormat.format(threeDSeekBar.getProgress() / (float)RATIO));
         perspectiveTextView.setText(decimalFormat.format(perspectiveSeekBar.getProgress() / (float)RATIO));
+        speedTextView.setText(decimalFormat.format(speedSeekBar.getProgress() / (float)RATIO));
     }
 
     @Override
@@ -467,6 +496,17 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
     @Override
     public void onStopTrackingTouch(SeekBar seekBar) {
-
+        if (seekBar.equals(speedSeekBar)) {
+            synchronized (shiftLock) {
+                step = (int) (speedSeekBar.getProgress() / (float) RATIO * (-40.0f) + 40);
+                if (step == 0) {
+                    step = 1;
+                }
+                Pair<ArrayList<Float>, ArrayList<Float>> shift = getShift(currentDirection, threshold, step);
+                xShift = shift.first;
+                yShift = shift.second;
+                currentShiftIndex = 0;
+            }
+        }
     }
 }
