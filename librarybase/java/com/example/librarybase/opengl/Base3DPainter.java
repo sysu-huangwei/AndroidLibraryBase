@@ -195,7 +195,7 @@ public class Base3DPainter  {
         height = 0;
     }
 
-    public int render(int inputTextureID, int depthTextureProcessedID, int depthTextureOriginID, ArrayList<Pair<Integer, Float>> materialTextureAndDepth, float xOffset, float yOffset) {
+    public int render(int inputTextureID, int depthTextureProcessedID, int depthTextureOriginID, ArrayList<Pair<Integer, Float>> materialTextureAndDepth, float xOffset, float yOffset, float scale) {
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBufferID);
         GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outputTextureID, 0);
 
@@ -234,7 +234,7 @@ public class Base3DPainter  {
 
         //传入其他参数
         GLES20.glUniform1f(focusUniform, 0.5f);
-        GLES20.glUniform1f(scaleUniform, 0.05f);
+        GLES20.glUniform1f(scaleUniform, scale);
         GLES20.glUniform2f(xyOffsetUniform, xOffset, yOffset);
 
         // 传入顶点位置

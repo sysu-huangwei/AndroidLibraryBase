@@ -133,15 +133,25 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         eyeX.setMax((int)(0.1 * RATIO));
         eyeY.setMin((int)(-0.1 * RATIO));
         eyeY.setMax((int)(0.1 * RATIO));
+        threeDSeekBar.setMin(0);
+        threeDSeekBar.setMax((int)(0.1 * RATIO));
         perspectiveSeekBar.setMin(0);
-        perspectiveSeekBar.setMax((int)(0.5 * RATIO));
+        perspectiveSeekBar.setMax((int)(0.25 * RATIO));
 
         eyeX.setProgress(0 * RATIO);
         eyeY.setProgress(0 * RATIO);
+        threeDSeekBar.setProgress((int)(0.05f * RATIO));
         perspectiveSeekBar.setProgress((int)(0.03 * RATIO));
+
+        DecimalFormat decimalFormat = new DecimalFormat("0.00");
+        eyeXTextView.setText(decimalFormat.format(eyeX.getProgress() / (float)RATIO));
+        eyeYTextView.setText(decimalFormat.format(eyeY.getProgress() / (float)RATIO));
+        threeDTextView.setText(decimalFormat.format(threeDSeekBar.getProgress() / (float)RATIO));
+        perspectiveTextView.setText(decimalFormat.format(perspectiveSeekBar.getProgress() / (float)RATIO));
 
         eyeX.setOnSeekBarChangeListener(this);
         eyeY.setOnSeekBarChangeListener(this);
+        threeDSeekBar.setOnSeekBarChangeListener(this);
         perspectiveSeekBar.setOnSeekBarChangeListener(this);
 
         mSwitchCameraFacingButton = findViewById(R.id.switch_camera_facing);
@@ -220,7 +230,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                         int dilateAndBlurDepthTextureID = baseGaussianBlurFilter.render(dilateDepthTextureID);
                         int threeDTextureID = base3DPainter
                                 .render(bitmapTextureID, dilateAndBlurDepthTextureID, depthTextureID, materialTextureAndDepth,
-                                        xShift.get(currentShiftIndex), yShift.get(currentShiftIndex));
+                                        xShift.get(currentShiftIndex), yShift.get(currentShiftIndex), threeDSeekBar.getProgress() / (float)RATIO);
                         int perspectiveTextureID = basePerspectiveFilter.render(threeDTextureID,
                                 eyeX.getProgress() / (float)RATIO, eyeY.getProgress() / (float)RATIO,
                                 xShift.get(currentShiftIndex), yShift.get(currentShiftIndex), 0.5f, perspectiveSeekBar.getProgress() / (float)RATIO);

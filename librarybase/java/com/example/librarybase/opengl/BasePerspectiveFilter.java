@@ -193,7 +193,7 @@ public class BasePerspectiveFilter {
         double left;
         double right;
         if (eyeX < 0) {
-            left = nearX / farX * Math.cos(degreeX);//nearX / farX * Math.cos(degreeX);
+            left = Math.cos(degreeX);//nearX / farX * Math.cos(degreeX);
             right = -1.0 * nearX / farX * Math.cos(degreeX);
         } else {
             left = nearX / farX * Math.cos(degreeX);
@@ -229,7 +229,7 @@ public class BasePerspectiveFilter {
 
 
         float cutMax = 1.0f;
-        float cutMin = 0.99f;
+        float cutMin = 0.98f;
         float d = (float)Math.sqrt(eyeX * eyeX + eyeY * eyeY) / scale;
         float cut = (cutMax - cutMin) * d + cutMin;
 
