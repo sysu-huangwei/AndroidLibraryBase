@@ -1,16 +1,17 @@
-package com.example.librarybase.opengl;
+package com.example.librarybase.threedimensional;
 
 import android.opengl.GLES20;
 import android.util.Pair;
+import com.example.librarybase.opengl.BaseGLUtils;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 
 /**
  * @author: rayyy
  * @date: 2020/7/23
- * @description: 画3D的类
+ * @description: 画景深的类
  */
-public class Base3DPainter  {
+public class DepthFilter {
 
     private String vertexShaderString;
     private String fragmentShaderString;
@@ -54,7 +55,7 @@ public class Base3DPainter  {
     protected final FloatBuffer mImageVerticesBuffer = BaseGLUtils.floatArrayToFloatBuffer(mImageVertices);
     protected final FloatBuffer mTextureCoordinatesBuffer = BaseGLUtils.floatArrayToFloatBuffer(mTextureCoordinates);
 
-    public Base3DPainter() {
+    public DepthFilter() {
         vertexShaderString = ""
                 + "attribute vec4 position;\n"
                 + "attribute vec4 inputTextureCoordinate;\n"
@@ -195,7 +196,7 @@ public class Base3DPainter  {
         height = 0;
     }
 
-    public int render(int inputTextureID, int depthTextureProcessedID, int depthTextureOriginID, ArrayList<Pair<Integer, Float>> materialTextureAndDepth, float xOffset, float yOffset, float scale) {
+    public int render(int inputTextureID, int depthTextureOriginID, int depthTextureProcessedID, ArrayList<Pair<Integer, Float>> materialTextureAndDepth, float xOffset, float yOffset, float depthScale) {
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBufferID);
         GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outputTextureID, 0);
 
@@ -234,7 +235,7 @@ public class Base3DPainter  {
 
         //传入其他参数
         GLES20.glUniform1f(focusUniform, 0.5f);
-        GLES20.glUniform1f(scaleUniform, scale);
+        GLES20.glUniform1f(scaleUniform, depthScale);
         GLES20.glUniform2f(xyOffsetUniform, xOffset, yOffset);
 
         // 传入顶点位置

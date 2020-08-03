@@ -1,14 +1,15 @@
-package com.example.librarybase.opengl;
+package com.example.librarybase.threedimensional;
 
 import android.opengl.GLES20;
+import com.example.librarybase.opengl.BaseGLUtils;
 import java.nio.FloatBuffer;
 
 /**
  * User: rayyyhuang
- * Date: 2020/7/27
- * Description: 高斯模糊算法
+ * Date: 2020/7/28
+ * Description: 透视效果
  */
-public class BaseGaussianBlurFilter {
+public class PerspectiveFilter {
 
     private String vertexShaderString;
     private String fragmentShaderString;
@@ -19,8 +20,7 @@ public class BaseGaussianBlurFilter {
     private int textureCoordinateAttribute = 0;
 
     private int inputImageTextureUniform = 0;
-    private int texelWidthOffsetUniform = 0;
-    private int texelHeightOffsetUniform = 0;
+    private int mvpMatrixUniform; // 变换矩阵位置
 
     private int outputTextureID = 0; // 用于离屏渲染内置的纹理
     private int outputFrameBufferID = 0; // 用于离屏渲染内置的FBO，outputTextureID
@@ -47,52 +47,25 @@ public class BaseGaussianBlurFilter {
     protected final FloatBuffer mImageVerticesBuffer = BaseGLUtils.floatArrayToFloatBuffer(mImageVertices);
     protected final FloatBuffer mTextureCoordinatesBuffer = BaseGLUtils.floatArrayToFloatBuffer(mTextureCoordinates);
 
-    public BaseGaussianBlurFilter() {
+    public PerspectiveFilter() {
         vertexShaderString = ""
                 + "attribute vec4 position;\n"
                 + "attribute vec4 inputTextureCoordinate;\n"
-                + "const int GAUSSIAN_SAMPLES = 13;\n"
+                + "uniform mat4 mvpMatrix;\n"
                 + "varying vec2 textureCoordinate;\n"
-                + "varying vec2 blurCoordinates[GAUSSIAN_SAMPLES];\n"
-                + "uniform float texelWidthOffset;\n"
-                + "uniform float texelHeightOffset;\n"
                 + "void main()\n"
                 + "{\n"
-                + "    gl_Position = position;\n"
-                + "    int multiplier = 0;\n"
-                + "    vec2 blurStep;\n"
-                + "    vec2 singleStepOffset = vec2(texelWidthOffset, texelHeightOffset);\n"
-                + "    for (int i = 0; i < GAUSSIAN_SAMPLES; i++)\n"
-                + "    {\n"
-                + "        multiplier = (i - ((GAUSSIAN_SAMPLES - 1) / 2));\n"
-                + "        blurStep = float(multiplier) * singleStepOffset;\n"
-                + "        blurCoordinates[i] = inputTextureCoordinate.xy + blurStep;\n"
-                + "    }\n"
+                + "    gl_Position = mvpMatrix * position;\n"
+                + "    textureCoordinate = inputTextureCoordinate.xy;\n"
                 + "}\n";
 
         fragmentShaderString = ""
                 + "precision highp float;\n"
-                + "const int GAUSSIAN_SAMPLES = 13;\n"
                 + "varying vec2 textureCoordinate;\n"
-                + "varying vec2 blurCoordinates[GAUSSIAN_SAMPLES];\n"
                 + "uniform sampler2D inputImageTexture;\n"
                 + "void main()\n"
                 + "{\n"
-                + "    highp vec4 sum = vec4(0.0);\n"
-                + "    sum += texture2D(inputImageTexture, blurCoordinates[0]) * 0.046118;\n"
-                + "    sum += texture2D(inputImageTexture, blurCoordinates[1]) * 0.058552;\n"
-                + "    sum += texture2D(inputImageTexture, blurCoordinates[2]) * 0.071181;\n"
-                + "    sum += texture2D(inputImageTexture, blurCoordinates[3]) * 0.082860;\n"
-                + "    sum += texture2D(inputImageTexture, blurCoordinates[4]) * 0.092356;\n"
-                + "    sum += texture2D(inputImageTexture, blurCoordinates[5]) * 0.098568;\n"
-                + "    sum += texture2D(inputImageTexture, blurCoordinates[6]) * 0.100731;\n"
-                + "    sum += texture2D(inputImageTexture, blurCoordinates[7]) * 0.098568;\n"
-                + "    sum += texture2D(inputImageTexture, blurCoordinates[8]) * 0.092356;\n"
-                + "    sum += texture2D(inputImageTexture, blurCoordinates[9]) * 0.082860;\n"
-                + "    sum += texture2D(inputImageTexture, blurCoordinates[10]) * 0.071181;\n"
-                + "    sum += texture2D(inputImageTexture, blurCoordinates[11]) * 0.058552;\n"
-                + "    sum += texture2D(inputImageTexture, blurCoordinates[12]) * 0.046118;\n"
-                + "    gl_FragColor = sum;\n"
+                + "    gl_FragColor = texture2D(inputImageTexture, textureCoordinate);\n"
                 + "}\n";
     }
 
@@ -102,11 +75,12 @@ public class BaseGaussianBlurFilter {
             // 获取顶点坐标位置
             positionAttribute = GLES20.glGetAttribLocation(program, "position");
             // 获取纹理坐标位置
-            textureCoordinateAttribute = GLES20.glGetAttribLocation(program, "inputTextureCoordinate");
+            textureCoordinateAttribute = GLES20
+                    .glGetAttribLocation(program, "inputTextureCoordinate");
             // 获取纹理采样器位置
             inputImageTextureUniform = GLES20.glGetUniformLocation(program, "inputImageTexture");
-            texelWidthOffsetUniform = GLES20.glGetUniformLocation(program, "texelWidthOffset");
-            texelHeightOffsetUniform = GLES20.glGetUniformLocation(program, "texelHeightOffset");
+            // 获取变换矩阵位置
+            mvpMatrixUniform = GLES20.glGetUniformLocation(program, "mvpMatrix");
         }
 
         this.width = width;
@@ -126,7 +100,8 @@ public class BaseGaussianBlurFilter {
         height = 0;
     }
 
-    public int render(int inputTextureID) {
+    public int render(int inputTexture, float[] mvpMatrix) {
+
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBufferID);
         GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outputTextureID, 0);
 
@@ -141,12 +116,8 @@ public class BaseGaussianBlurFilter {
 
         // 传入纹理
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, inputTextureID);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, inputTexture);
         GLES20.glUniform1i(inputImageTextureUniform, 0);
-
-        //传入其他参数
-        GLES20.glUniform1f(texelWidthOffsetUniform, 0.002f);
-        GLES20.glUniform1f(texelHeightOffsetUniform, 0.002f);
 
         // 传入顶点位置
         GLES20.glEnableVertexAttribArray(positionAttribute);
@@ -155,6 +126,8 @@ public class BaseGaussianBlurFilter {
         // 传入纹理位置
         GLES20.glEnableVertexAttribArray(textureCoordinateAttribute);
         GLES20.glVertexAttribPointer(textureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 8, mTextureCoordinatesBuffer);
+
+        GLES20.glUniformMatrix4fv(mvpMatrixUniform, 1, false, mvpMatrix, 0);
 
         // 绘制
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);

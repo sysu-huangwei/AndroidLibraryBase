@@ -1,5 +1,9 @@
 package com.example.androidlibrarybase;
 
+import static com.example.librarybase.threedimensional.ThreeDimensionalUtils.DIRECTION_TYPE_CIRCLE;
+import static com.example.librarybase.threedimensional.ThreeDimensionalUtils.DIRECTION_TYPE_LEFT_RIGHT;
+import static com.example.librarybase.threedimensional.ThreeDimensionalUtils.DIRECTION_TYPE_UP_DOWN;
+
 import android.content.res.AssetManager;
 import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
@@ -19,15 +23,19 @@ import android.view.View;
 import android.widget.Button;
 
 import com.example.librarybase.opengl.Base2DTexturePainter;
-import com.example.librarybase.opengl.Base3DPainter;
+import com.example.librarybase.threedimensional.DepthFilter;
 import com.example.librarybase.opengl.BaseCamera;
 import com.example.librarybase.opengl.BaseGLUtils;
-import com.example.librarybase.opengl.BaseDilateFilter;
-import com.example.librarybase.opengl.BaseGaussianBlurFilter;
-import com.example.librarybase.opengl.BasePerspectiveFilter;
+import com.example.librarybase.threedimensional.DilateFilter;
+import com.example.librarybase.threedimensional.GaussianBlurFilter;
+import com.example.librarybase.threedimensional.PerspectiveFilter;
 import com.example.librarybase.opengl.BasePointPainter;
 import com.example.librarybase.opengl.BaseRectPainter;
 
+import com.example.librarybase.threedimensional.ThreeDimensionalFilter;
+import com.example.librarybase.threedimensional.ThreeDimensionalOneFrameData;
+import com.example.librarybase.threedimensional.ThreeDimensionalUtils;
+import com.example.librarybase.threedimensional.ThreeDimensionalUtils.DirectionType;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.DecimalFormat;
@@ -102,22 +110,15 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     float materialDepth5 = 2.0f;
 
 
-    Base3DPainter base3DPainter = new Base3DPainter();
-    ArrayList<Float> xShift;
-    ArrayList<Float> yShift;
-    float threshold = 0.5f;
-    int step = 20;
     int currentShiftIndex = 0;
-    int currentDirection = 1;
+    @DirectionType String currentDirection = DIRECTION_TYPE_LEFT_RIGHT;
     final Object shiftLock = new Object();
+    ArrayList<ThreeDimensionalOneFrameData> threeDimensionalOneFrameDataArrayList;
 
-    BaseDilateFilter baseDilateFilter = new BaseDilateFilter();
     volatile boolean showOrigin = false;
     volatile boolean showDepth = false;
 
-    BaseGaussianBlurFilter baseGaussianBlurFilter = new BaseGaussianBlurFilter();
-
-    BasePerspectiveFilter basePerspectiveFilter = new BasePerspectiveFilter();
+    ThreeDimensionalFilter threeDimensionalFilter = new ThreeDimensionalFilter();
 
     @RequiresApi(api = VERSION_CODES.O)
     @Override
@@ -189,9 +190,9 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         material3 = getBitmapFromAssets("蝴蝶 (3).png");
         material4 = getBitmapFromAssets("蝴蝶 (4).png");
         material5 = getBitmapFromAssets("蝴蝶 (5).png");
-        Pair<ArrayList<Float>, ArrayList<Float>> shift = getShift(currentDirection, threshold, step);
-        xShift = shift.first;
-        yShift = shift.second;
+
+        threeDimensionalOneFrameDataArrayList = ThreeDimensionalUtils.calculateThreeDimensionalData(
+                currentDirection, threeDSeekBar.getProgress() / (float)RATIO, perspectiveSeekBar.getProgress() / (float)RATIO, speedSeekBar.getProgress() / (float)RATIO);
 
         ArrayList<Pair<Integer, Float>> materialTextureAndDepth = new ArrayList<>();
 
@@ -214,10 +215,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                 materialTextureAndDepth.add(Pair.create(materialTextureID3, materialDepth3));
                 materialTextureAndDepth.add(Pair.create(materialTextureID4, materialDepth4));
                 materialTextureAndDepth.add(Pair.create(materialTextureID5, materialDepth5));
-                base3DPainter.init(bitmap.getWidth(), bitmap.getHeight());
-                baseDilateFilter.init(bitmap.getWidth(), bitmap.getHeight());
-                baseGaussianBlurFilter.init(bitmap.getWidth(), bitmap.getHeight());
-                basePerspectiveFilter.init(bitmap.getWidth(), bitmap.getHeight());
+                threeDimensionalFilter.init(bitmap.getWidth(), bitmap.getHeight());
 //                mBaseCamera.initGL();
                 mBase2DTexturePainter.init();
                 mBasePointPainter.init();
@@ -238,6 +236,8 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                         depth = getBitmapFromAssets("selfie_depth/" + depthFileList[currentFileIndex]);
                         bitmapTextureID = BaseGLUtils.createTextures2DWithBitmap(bitmap, GLES20.GL_RGBA);
                         depthTextureID = BaseGLUtils.createTextures2DWithBitmap(depth, GLES20.GL_RGBA);
+                        threeDimensionalFilter.release();
+                        threeDimensionalFilter.init(bitmap.getWidth(), bitmap.getHeight());
                         isNeedReloadImage = false;
                     }
                     if (showOrigin) {
@@ -249,42 +249,15 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                                 .render(depthTextureID, bitmap.getWidth(), bitmap.getHeight(),
                                         surfaceWidth, surfaceHeight);
                     } else {
-                        int dilateDepthTextureID = baseDilateFilter.render(depthTextureID);
-                        int dilateAndBlurDepthTextureID = baseGaussianBlurFilter.render(dilateDepthTextureID);
-                        int threeDTextureID = base3DPainter
-                                .render(bitmapTextureID, dilateAndBlurDepthTextureID, depthTextureID, materialTextureAndDepth,
-                                        xShift.get(currentShiftIndex), yShift.get(currentShiftIndex), threeDSeekBar.getProgress() / (float)RATIO);
-                        int perspectiveTextureID = basePerspectiveFilter.render(threeDTextureID,
-                                eyeX.getProgress() / (float)RATIO, eyeY.getProgress() / (float)RATIO,
-                                xShift.get(currentShiftIndex), yShift.get(currentShiftIndex), threshold, perspectiveSeekBar.getProgress() / (float)RATIO);
+                        int threeDimensionalTextureID = threeDimensionalFilter.render(bitmapTextureID, depthTextureID, materialTextureAndDepth, threeDimensionalOneFrameDataArrayList.get(currentShiftIndex));
                         mBase2DTexturePainter
-                                .render(perspectiveTextureID, bitmap.getWidth(), bitmap.getHeight(),
+                                .render(threeDimensionalTextureID, bitmap.getWidth(), bitmap.getHeight(),
                                         surfaceWidth, surfaceHeight);
                     }
-                        currentShiftIndex++;
-                        if (currentShiftIndex >= xShift.size()) {
-                            currentShiftIndex = 0;
-                        }
-////                int cameraOutputTexture = mBaseCamera.render();
-////                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
-////                mBaseRectPainter.setRectPoints(new float[] {0.25f, 0.25f, 0.75f, 0.75f, 0.3f, 0.3f, 0.6f, 0.6f});
-//                        int dilateDepthTextureID = baseDilateFilter.render(depthTextureID);
-//                        int dilateAndBlurDepthTextureID = baseGaussianBlurFilter.render(dilateDepthTextureID);
-//                    int texture = base3DPainter
-//                            .render(bitmapTextureID, dilateAndBlurDepthTextureID, depthTextureID, materialTextureAndDepth,
-//                                    xShift.get(currentShiftIndex), yShift.get(currentShiftIndex));
-////                int pointOutTexture = mBasePointPainter.renderToInnerFBO(bitmapTextureID, bitmap.getWidth(), bitmap.getHeight());
-////                int rectOutTexture = mBaseRectPainter.renderToInnerFBO(pointOutTexture, mBasePointPainter.getOutputTextureWidth(), mBasePointPainter.getOutputTextureHeight());
-//                        mBase2DTexturePainter
-//                                .render(texture, bitmap.getWidth(), bitmap.getHeight(),
-//                                        surfaceWidth,
-//                                        surfaceHeight);
-//                    } else {
-//                        mBase2DTexturePainter
-//                                .render(bitmapTextureID, bitmap.getWidth(), bitmap.getHeight(),
-//                                        surfaceWidth, surfaceHeight);
-//                    }
-
+                    currentShiftIndex++;
+                    if (currentShiftIndex >= threeDimensionalOneFrameDataArrayList.size()) {
+                        currentShiftIndex = 0;
+                    }
                 }
             }
         });
@@ -370,13 +343,15 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     public void onClick(View v) {
         if (v.equals(mTakePictureButton)) {
             synchronized (shiftLock) {
-                currentDirection++;
-                if (currentDirection > 3) {
-                    currentDirection = 1;
+                if (currentDirection.equals(DIRECTION_TYPE_LEFT_RIGHT)) {
+                    currentDirection = DIRECTION_TYPE_UP_DOWN;
+                } else if (currentDirection.equals(DIRECTION_TYPE_UP_DOWN)) {
+                    currentDirection = DIRECTION_TYPE_CIRCLE;
+                } else {
+                    currentDirection = DIRECTION_TYPE_LEFT_RIGHT;
                 }
-                Pair<ArrayList<Float>, ArrayList<Float>> shift = getShift(currentDirection, threshold, step);
-                xShift = shift.first;
-                yShift = shift.second;
+                threeDimensionalOneFrameDataArrayList = ThreeDimensionalUtils.calculateThreeDimensionalData(
+                        currentDirection, threeDSeekBar.getProgress() / (float)RATIO, perspectiveSeekBar.getProgress() / (float)RATIO, speedSeekBar.getProgress() / (float)RATIO);
             }
         }
         if (v.equals(mSwitchCameraFacingButton)) {
@@ -424,50 +399,6 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 //        }
     }
 
-    /**
-     * 获取前景后景坐标偏移量
-     * @param direction 旋转方式：1 左右 2 上下 3 转圈
-     * @param threshold 最大偏移量
-     * @param step 1/4周期的步长
-     * @return first：x方向偏移量  second：y方向偏移量
-     */
-    private static Pair<ArrayList<Float>, ArrayList<Float>> getShift(int direction, float threshold, int step) {
-        ArrayList<Float> xShift = new ArrayList<>();
-        ArrayList<Float> yShift = new ArrayList<>();
-        if (direction == 1 || direction == 2) {
-            ArrayList<Float> positive = new ArrayList<>();
-            ArrayList<Float> negative = new ArrayList<>();
-            for (float f = 0.0f; f < threshold; f += (threshold / step)) {
-                positive.add(f);
-                negative.add(-f);
-            }
-            ArrayList<Float> animalFunction = new ArrayList<>();
-            animalFunction.addAll(positive);
-            Collections.reverse(positive);
-            animalFunction.addAll(positive);
-            animalFunction.addAll(negative);
-            Collections.reverse(negative);
-            animalFunction.addAll(negative);
-
-            xShift.addAll(animalFunction);
-            yShift.addAll(animalFunction);
-
-            if (direction == 1) {
-                Collections.fill(yShift, 0.0f);
-            } else {
-                Collections.fill(xShift, 0.0f);
-            }
-
-        } else if (direction == 3) {
-            float fullDeg = (float) Math.PI * 2.0f;
-            for (float f = 0.0f; f < fullDeg; f += fullDeg / step / 4.0f) {
-                xShift.add(threshold * (float) Math.cos(f));
-                yShift.add(threshold * (float) Math.sin(f));
-            }
-        }
-        return Pair.create(xShift, yShift);
-    }
-
     private Bitmap getBitmapFromAssets(String path) {
         AssetManager assetManager = this.getAssets();
         InputStream inputStream = null;
@@ -496,15 +427,10 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
     @Override
     public void onStopTrackingTouch(SeekBar seekBar) {
-        if (seekBar.equals(speedSeekBar)) {
+        if (seekBar.equals(threeDSeekBar) || seekBar.equals(perspectiveSeekBar) || seekBar.equals(speedSeekBar)) {
             synchronized (shiftLock) {
-                step = (int) (speedSeekBar.getProgress() / (float) RATIO * (-40.0f) + 40);
-                if (step == 0) {
-                    step = 1;
-                }
-                Pair<ArrayList<Float>, ArrayList<Float>> shift = getShift(currentDirection, threshold, step);
-                xShift = shift.first;
-                yShift = shift.second;
+                threeDimensionalOneFrameDataArrayList = ThreeDimensionalUtils.calculateThreeDimensionalData(
+                        currentDirection, threeDSeekBar.getProgress() / (float)RATIO, perspectiveSeekBar.getProgress() / (float)RATIO, speedSeekBar.getProgress() / (float)RATIO);
                 currentShiftIndex = 0;
             }
         }

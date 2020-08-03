@@ -1,14 +1,15 @@
-package com.example.librarybase.opengl;
+package com.example.librarybase.threedimensional;
 
 import android.opengl.GLES20;
+import com.example.librarybase.opengl.BaseGLUtils;
 import java.nio.FloatBuffer;
 
 /**
  * User: rayyyhuang
  * Date: 2020/7/27
- * Description: 膨胀滤算法
+ * Description: 高斯模糊算法
  */
-public class BaseDilateFilter {
+public class GaussianBlurFilter {
 
     private String vertexShaderString;
     private String fragmentShaderString;
@@ -47,42 +48,52 @@ public class BaseDilateFilter {
     protected final FloatBuffer mImageVerticesBuffer = BaseGLUtils.floatArrayToFloatBuffer(mImageVertices);
     protected final FloatBuffer mTextureCoordinatesBuffer = BaseGLUtils.floatArrayToFloatBuffer(mTextureCoordinates);
 
-    public BaseDilateFilter() {
+    public GaussianBlurFilter() {
         vertexShaderString = ""
                 + "attribute vec4 position;\n"
                 + "attribute vec4 inputTextureCoordinate;\n"
+                + "const int GAUSSIAN_SAMPLES = 13;\n"
                 + "varying vec2 textureCoordinate;\n"
-                + "varying vec2 textureCoordinateOneStepPositive;\n"
-                + "varying vec2 textureCoordinateOneStepNegative;\n"
+                + "varying vec2 blurCoordinates[GAUSSIAN_SAMPLES];\n"
                 + "uniform float texelWidthOffset;\n"
                 + "uniform float texelHeightOffset;\n"
                 + "void main()\n"
                 + "{\n"
-                + "    vec2 offset = vec2(texelWidthOffset, texelHeightOffset);\n"
                 + "    gl_Position = position;\n"
-                + "    textureCoordinate = inputTextureCoordinate.xy;\n"
-                + "    textureCoordinateOneStepPositive = inputTextureCoordinate.xy + offset;\n"
-                + "    textureCoordinateOneStepNegative = inputTextureCoordinate.xy - offset;\n"
+                + "    int multiplier = 0;\n"
+                + "    vec2 blurStep;\n"
+                + "    vec2 singleStepOffset = vec2(texelWidthOffset, texelHeightOffset);\n"
+                + "    for (int i = 0; i < GAUSSIAN_SAMPLES; i++)\n"
+                + "    {\n"
+                + "        multiplier = (i - ((GAUSSIAN_SAMPLES - 1) / 2));\n"
+                + "        blurStep = float(multiplier) * singleStepOffset;\n"
+                + "        blurCoordinates[i] = inputTextureCoordinate.xy + blurStep;\n"
+                + "    }\n"
                 + "}\n";
 
         fragmentShaderString = ""
                 + "precision highp float;\n"
+                + "const int GAUSSIAN_SAMPLES = 13;\n"
                 + "varying vec2 textureCoordinate;\n"
-                + "varying vec2 textureCoordinateOneStepPositive;\n"
-                + "varying vec2 textureCoordinateOneStepNegative;\n"
+                + "varying vec2 blurCoordinates[GAUSSIAN_SAMPLES];\n"
                 + "uniform sampler2D inputImageTexture;\n"
                 + "void main()\n"
                 + "{\n"
-                + "    vec4 centerColor = texture2D(inputImageTexture, textureCoordinate);\n"
-                + "    vec4 oneStepPositiveColor = texture2D(inputImageTexture, textureCoordinateOneStepPositive);\n"
-                + "    vec4 oneStepNegativeColor = texture2D(inputImageTexture, textureCoordinateOneStepNegative);\n"
-                + "    float maxR = max(centerColor.r, oneStepPositiveColor.r);\n"
-                + "    maxR = max(maxR, oneStepNegativeColor.r);\n"
-                + "    float maxG = max(centerColor.g, oneStepPositiveColor.g);\n"
-                + "    maxG = max(maxG, oneStepNegativeColor.g);\n"
-                + "    float maxB = max(centerColor.b, oneStepPositiveColor.b);\n"
-                + "    maxB = max(maxB, oneStepNegativeColor.b);\n"
-                + "    gl_FragColor = vec4(maxR, maxG, maxB, centerColor.a);\n"
+                + "    highp vec4 sum = vec4(0.0);\n"
+                + "    sum += texture2D(inputImageTexture, blurCoordinates[0]) * 0.046118;\n"
+                + "    sum += texture2D(inputImageTexture, blurCoordinates[1]) * 0.058552;\n"
+                + "    sum += texture2D(inputImageTexture, blurCoordinates[2]) * 0.071181;\n"
+                + "    sum += texture2D(inputImageTexture, blurCoordinates[3]) * 0.082860;\n"
+                + "    sum += texture2D(inputImageTexture, blurCoordinates[4]) * 0.092356;\n"
+                + "    sum += texture2D(inputImageTexture, blurCoordinates[5]) * 0.098568;\n"
+                + "    sum += texture2D(inputImageTexture, blurCoordinates[6]) * 0.100731;\n"
+                + "    sum += texture2D(inputImageTexture, blurCoordinates[7]) * 0.098568;\n"
+                + "    sum += texture2D(inputImageTexture, blurCoordinates[8]) * 0.092356;\n"
+                + "    sum += texture2D(inputImageTexture, blurCoordinates[9]) * 0.082860;\n"
+                + "    sum += texture2D(inputImageTexture, blurCoordinates[10]) * 0.071181;\n"
+                + "    sum += texture2D(inputImageTexture, blurCoordinates[11]) * 0.058552;\n"
+                + "    sum += texture2D(inputImageTexture, blurCoordinates[12]) * 0.046118;\n"
+                + "    gl_FragColor = sum;\n"
                 + "}\n";
     }
 
@@ -135,8 +146,8 @@ public class BaseDilateFilter {
         GLES20.glUniform1i(inputImageTextureUniform, 0);
 
         //传入其他参数
-        GLES20.glUniform1f(texelWidthOffsetUniform, 0.02f);
-        GLES20.glUniform1f(texelHeightOffsetUniform, 0.02f);
+        GLES20.glUniform1f(texelWidthOffsetUniform, 0.002f);
+        GLES20.glUniform1f(texelHeightOffsetUniform, 0.002f);
 
         // 传入顶点位置
         GLES20.glEnableVertexAttribArray(positionAttribute);
