@@ -2,25 +2,40 @@ package com.example.librarybase.threedimensional;
 
 import android.opengl.GLES20;
 import android.util.Pair;
-import com.example.librarybase.opengl.BaseGLUtils;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 
 /**
- * @author: rayyy
- * @date: 2020/7/23
- * @description: 画景深的类
+ * User: rayyy
+ * Date: 2020/7/23
+ * Description: 画景深的类
  */
 public class DepthFilter {
 
+    // 顶点坐标
+    protected final float[] imageVertices = {
+            -1f, 1f, // top left
+            1f, 1f,  // top right
+            -1f, -1f, // bottom left
+            1f, -1f, // bottom right
+    };
+    // 纹理坐标
+    protected final float[] textureCoordinates = {
+            0f, 1f, // bottom left
+            1f, 1f, // bottom right
+            0f, 0f, // top left
+            1f, 0f, // top right
+    };
+    // float[]转FloatBuffer
+    protected final FloatBuffer imageVerticesBuffer = BaseGLUtils
+            .floatArrayToFloatBuffer(imageVertices);
+    protected final FloatBuffer textureCoordinatesBuffer = BaseGLUtils
+            .floatArrayToFloatBuffer(textureCoordinates);
     private String vertexShaderString;
     private String fragmentShaderString;
-
     private int program = 0;
-
     private int positionAttribute = 0;
     private int textureCoordinateAttribute = 0;
-
     private int inputImageTextureUniform = 0;
     private int depthImageTextureProcessedUniform = 0;
     private int depthImageTextureOriginUniform = 0;
@@ -29,32 +44,14 @@ public class DepthFilter {
     private int xyOffsetUniform = 0;
     private int scaleUniform = 0;
     private int focusUniform = 0;
-
     private int outputTextureID = 0; // 用于离屏渲染内置的纹理
     private int outputFrameBufferID = 0; // 用于离屏渲染内置的FBO，outputTextureID
     private int width = 0; // 用于离屏渲染内置的纹理的宽
     private int height = 0; // 用于离屏渲染内置的纹理的高
 
-    // 顶点坐标
-    protected final float[] mImageVertices = {
-            -1f, 1f, // top left
-            1f, 1f,  // top right
-            -1f, -1f, // bottom left
-            1f, -1f, // bottom right
-    };
-
-    // 纹理坐标
-    protected final float[] mTextureCoordinates = {
-            0f, 1f, // bottom left
-            1f, 1f, // bottom right
-            0f, 0f, // top left
-            1f, 0f, // top right
-    };
-
-    // float[]转FloatBuffer
-    protected final FloatBuffer mImageVerticesBuffer = BaseGLUtils.floatArrayToFloatBuffer(mImageVertices);
-    protected final FloatBuffer mTextureCoordinatesBuffer = BaseGLUtils.floatArrayToFloatBuffer(mTextureCoordinates);
-
+    /**
+     * 景深效果
+     */
     public DepthFilter() {
         vertexShaderString = ""
                 + "attribute vec4 position;\n"
@@ -79,11 +76,16 @@ public class DepthFilter {
                 + "    gl_Position = position;\n"
                 + "    textureCoordinate = inputTextureCoordinate.xy;\n"
                 + "    //把素材图景深值映射到 -0.5 ~ 0.5 (把原点放到focus上)\n"
-                + "    materialCoordinateShift[0] = textureCoordinate + xyOffset * (materialDepth0 - focus) * scale;\n"
-                + "    materialCoordinateShift[1] = textureCoordinate + xyOffset * (materialDepth1 - focus) * scale;\n"
-                + "    materialCoordinateShift[2] = textureCoordinate + xyOffset * (materialDepth2 - focus) * scale;\n"
-                + "    materialCoordinateShift[3] = textureCoordinate + xyOffset * (materialDepth3 - focus) * scale;\n"
-                + "    materialCoordinateShift[4] = textureCoordinate + xyOffset * (materialDepth4 - focus) * scale;\n"
+                + "    materialCoordinateShift[0] = textureCoordinate "
+                + "        + xyOffset * (materialDepth0 - focus) * scale;\n"
+                + "    materialCoordinateShift[1] = textureCoordinate "
+                + "        + xyOffset * (materialDepth1 - focus) * scale;\n"
+                + "    materialCoordinateShift[2] = textureCoordinate "
+                + "        + xyOffset * (materialDepth2 - focus) * scale;\n"
+                + "    materialCoordinateShift[3] = textureCoordinate "
+                + "        + xyOffset * (materialDepth3 - focus) * scale;\n"
+                + "    materialCoordinateShift[4] = textureCoordinate "
+                + "        + xyOffset * (materialDepth4 - focus) * scale;\n"
                 + "    materialDepth[0] = materialDepth0;\n"
                 + "    materialDepth[1] = materialDepth1;\n"
                 + "    materialDepth[2] = materialDepth2;\n"
@@ -114,12 +116,16 @@ public class DepthFilter {
                 + "void main()\n"
                 + "{\n"
                 + "    //根据膨胀和模糊之后的景深图计算偏移后的坐标\n"
-                + "    float depthProcessedAlpha = texture2D(depthImageTextureProcessed, textureCoordinate).r;\n"
-                + "    float mapProcessed = depthProcessedAlpha - focusVarying;//把 0 ~ 1 映射到 -0.5 ~ 0.5 (把原点放到focus上) \n"
-                + "    vec2 TexCoordinateShift = textureCoordinate + xyOffsetVarying * mapProcessed * scaleVarying;\n"
+                + "    float depthProcessedAlpha = "
+                + "        texture2D(depthImageTextureProcessed, textureCoordinate).r;\n"
+                + "    //把 0 ~ 1 映射到 -0.5 ~ 0.5 (把原点放到focus上)\n"
+                + "    float mapProcessed = depthProcessedAlpha - focusVarying;\n"
+                + "    vec2 TexCoordinateShift = textureCoordinate "
+                + "        + xyOffsetVarying * mapProcessed * scaleVarying;\n"
                 + "\n"
                 + "    //把原始的景深图也做一样的偏移效果处理，用于素材的遮盖\n"
-                + "    vec4 depthOriginColorShift = texture2D(depthImageTextureOrigin, TexCoordinateShift);\n"
+                + "    vec4 depthOriginColorShift = "
+                + "        texture2D(depthImageTextureOrigin, TexCoordinateShift);\n"
                 + "    float depthOriginShiftAlpha = depthOriginColorShift.r;\n"
                 + "\n"
                 + "    //原图的颜色\n"
@@ -129,50 +135,74 @@ public class DepthFilter {
                 + "\n"
                 + "    //计算素材图偏移之后的坐标，根据自身素材的深度进行偏移\n"
                 + "    if (depthOriginShiftAlpha <= materialDepth[0]) {\n"
-                + "        vec4 materialColorShift = texture2D(materialImageTexture0, materialCoordinateShift[0]);//得到偏移后的素材图\n"
-                + "        currentColor = mix(currentColor, materialColorShift, materialColorShift.a);//素材和原图做融合\n"
+                + "        vec4 materialColorShift = texture2D(materialImageTexture0, "
+                + "            materialCoordinateShift[0]);//得到偏移后的素材图\n"
+                + "        currentColor = mix(currentColor, materialColorShift, "
+                + "            materialColorShift.a);//素材和原图做融合\n"
                 + "    }\n"
                 + "    if (depthOriginShiftAlpha <= materialDepth[1]) {\n"
-                + "        vec4 materialColorShift = texture2D(materialImageTexture1, materialCoordinateShift[1]);//得到偏移后的素材图\n"
-                + "        currentColor = mix(currentColor, materialColorShift, materialColorShift.a);//素材和原图做融合\n"
+                + "        vec4 materialColorShift = texture2D(materialImageTexture1, "
+                + "            materialCoordinateShift[1]);//得到偏移后的素材图\n"
+                + "        currentColor = mix(currentColor, materialColorShift, "
+                + "            materialColorShift.a);//素材和原图做融合\n"
                 + "    }\n"
                 + "    if (depthOriginShiftAlpha <= materialDepth[2]) {\n"
-                + "        vec4 materialColorShift = texture2D(materialImageTexture2, materialCoordinateShift[2]);//得到偏移后的素材图\n"
-                + "        currentColor = mix(currentColor, materialColorShift, materialColorShift.a);//素材和原图做融合\n"
+                + "        vec4 materialColorShift = texture2D(materialImageTexture2, "
+                + "            materialCoordinateShift[2]);//得到偏移后的素材图\n"
+                + "        currentColor = mix(currentColor, materialColorShift, "
+                + "            materialColorShift.a);//素材和原图做融合\n"
                 + "    }\n"
                 + "    if (depthOriginShiftAlpha <= materialDepth[3]) {\n"
-                + "        vec4 materialColorShift = texture2D(materialImageTexture3, materialCoordinateShift[3]);//得到偏移后的素材图\n"
-                + "        currentColor = mix(currentColor, materialColorShift, materialColorShift.a);//素材和原图做融合\n"
+                + "        vec4 materialColorShift = texture2D(materialImageTexture3, "
+                + "            materialCoordinateShift[3]);//得到偏移后的素材图\n"
+                + "        currentColor = mix(currentColor, materialColorShift, "
+                + "            materialColorShift.a);//素材和原图做融合\n"
                 + "    }\n"
                 + "    if (depthOriginShiftAlpha <= materialDepth[4]) {\n"
-                + "        vec4 materialColorShift = texture2D(materialImageTexture4, materialCoordinateShift[4]);//得到偏移后的素材图\n"
-                + "        currentColor = mix(currentColor, materialColorShift, materialColorShift.a);//素材和原图做融合\n"
+                + "        vec4 materialColorShift = texture2D(materialImageTexture4, "
+                + "            materialCoordinateShift[4]);//得到偏移后的素材图\n"
+                + "        currentColor = mix(currentColor, materialColorShift, "
+                + "            materialColorShift.a);//素材和原图做融合\n"
                 + "    }\n"
                 + "\n"
                 + "    gl_FragColor = currentColor;\n"
                 + "}\n";
     }
 
+    /**
+     * 初始化，必须在GL线程
+     *
+     * @param width 宽
+     * @param height 高
+     */
     public void init(int width, int height) {
         program = BaseGLUtils.createProgram(vertexShaderString, fragmentShaderString);
         if (program > 0) {
             // 获取顶点坐标位置
             positionAttribute = GLES20.glGetAttribLocation(program, "position");
             // 获取纹理坐标位置
-            textureCoordinateAttribute = GLES20.glGetAttribLocation(program, "inputTextureCoordinate");
+            textureCoordinateAttribute = GLES20
+                    .glGetAttribLocation(program, "inputTextureCoordinate");
             // 获取纹理采样器位置
             inputImageTextureUniform = GLES20.glGetUniformLocation(program, "inputImageTexture");
-            depthImageTextureProcessedUniform = GLES20.glGetUniformLocation(program, "depthImageTextureProcessed");
-            depthImageTextureOriginUniform = GLES20.glGetUniformLocation(program, "depthImageTextureOrigin");
-            materialImageTextureUniform[0] = GLES20.glGetUniformLocation(program, "materialImageTexture0");
+            depthImageTextureProcessedUniform = GLES20
+                    .glGetUniformLocation(program, "depthImageTextureProcessed");
+            depthImageTextureOriginUniform = GLES20
+                    .glGetUniformLocation(program, "depthImageTextureOrigin");
+            materialImageTextureUniform[0] = GLES20
+                    .glGetUniformLocation(program, "materialImageTexture0");
             materialDepthUniform[0] = GLES20.glGetUniformLocation(program, "materialDepth0");
-            materialImageTextureUniform[1] = GLES20.glGetUniformLocation(program, "materialImageTexture1");
+            materialImageTextureUniform[1] = GLES20
+                    .glGetUniformLocation(program, "materialImageTexture1");
             materialDepthUniform[1] = GLES20.glGetUniformLocation(program, "materialDepth1");
-            materialImageTextureUniform[2] = GLES20.glGetUniformLocation(program, "materialImageTexture2");
+            materialImageTextureUniform[2] = GLES20
+                    .glGetUniformLocation(program, "materialImageTexture2");
             materialDepthUniform[2] = GLES20.glGetUniformLocation(program, "materialDepth2");
-            materialImageTextureUniform[3] = GLES20.glGetUniformLocation(program, "materialImageTexture3");
+            materialImageTextureUniform[3] = GLES20
+                    .glGetUniformLocation(program, "materialImageTexture3");
             materialDepthUniform[3] = GLES20.glGetUniformLocation(program, "materialDepth3");
-            materialImageTextureUniform[4] = GLES20.glGetUniformLocation(program, "materialImageTexture4");
+            materialImageTextureUniform[4] = GLES20
+                    .glGetUniformLocation(program, "materialImageTexture4");
             materialDepthUniform[4] = GLES20.glGetUniformLocation(program, "materialDepth4");
             xyOffsetUniform = GLES20.glGetUniformLocation(program, "xyOffset");
             scaleUniform = GLES20.glGetUniformLocation(program, "scale");
@@ -184,7 +214,10 @@ public class DepthFilter {
         outputTextureID = BaseGLUtils.createTextures2D();
         outputFrameBufferID = BaseGLUtils.createFBO(outputTextureID, width, height);
     }
-    
+
+    /**
+     * 释放资源，必须在GL线程
+     */
     public void release() {
         GLES20.glDeleteProgram(program);
         program = 0;
@@ -196,15 +229,30 @@ public class DepthFilter {
         height = 0;
     }
 
-    public int render(int inputTextureID, int depthTextureOriginID, int depthTextureProcessedID, ArrayList<Pair<Integer, Float>> materialTextureAndDepth, float xOffset, float yOffset, float depthScale) {
+    /**
+     * 渲染绘制效果
+     *
+     * @param inputTextureID 输入的原图的纹理ID
+     * @param depthTextureOriginID 原始景深图纹理ID
+     * @param depthTextureProcessedID 经过膨胀和模糊处理之后的景深图纹理ID
+     * @param materialTextureAndDepth 素材图的纹理ID及其对应的景深值
+     * @param xOffset x方向坐标偏移量
+     * @param yOffset y方向坐标偏移量
+     * @param depthScale 效果程度
+     * @return 结果纹理ID
+     */
+    public int render(int inputTextureID, int depthTextureOriginID, int depthTextureProcessedID,
+            ArrayList<Pair<Integer, Float>> materialTextureAndDepth, float xOffset, float yOffset,
+            float depthScale) {
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBufferID);
-        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outputTextureID, 0);
+        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0,
+                GLES20.GL_TEXTURE_2D, outputTextureID, 0);
 
         GLES20.glViewport(0, 0, width, height);
 
         // 清屏
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-        GLES20.glClearColor(0.0f,0.0f,0.0f,1.0f);
+        GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
         // 使用着色器绘制程序
         GLES20.glUseProgram(program);
@@ -240,11 +288,13 @@ public class DepthFilter {
 
         // 传入顶点位置
         GLES20.glEnableVertexAttribArray(positionAttribute);
-        GLES20.glVertexAttribPointer(positionAttribute, 2, GLES20.GL_FLOAT, false, 8, mImageVerticesBuffer);
+        GLES20.glVertexAttribPointer(positionAttribute, 2, GLES20.GL_FLOAT, false, 8,
+                imageVerticesBuffer);
 
         // 传入纹理位置
         GLES20.glEnableVertexAttribArray(textureCoordinateAttribute);
-        GLES20.glVertexAttribPointer(textureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 8, mTextureCoordinatesBuffer);
+        GLES20.glVertexAttribPointer(textureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 8,
+                textureCoordinatesBuffer);
 
         // 绘制
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);

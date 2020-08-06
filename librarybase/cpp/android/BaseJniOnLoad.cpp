@@ -5,6 +5,9 @@
 #include "LibraryBaseJni.h"
 #include "LibraryBaseTestJni.h"
 #include "NativeBitmapJni.h"
+#include "ThreeDimensionalFilterJni.h"
+#include "ThreeDimensionalOneFrameDataJni.h"
+#include "ThreeDimensionalUtilsJni.h"
 
 using namespace librarybase;
 
@@ -35,6 +38,21 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved) {
         LOGE("failed to registerNativeBitmapNativeMethods");
         return JNI_ERR;
     }
+
+    if (threedimensional::registerThreeDimensionalFilterNativeMethods(env, reserved) == JNI_ERR) {
+        LOGE("failed to registerThreeDimensionalFilterNativeMethods");
+        return JNI_ERR;
+    }
+
+  if (threedimensional::registerThreeDimensionalOneFrameDataNativeMethods(env, reserved) == JNI_ERR) {
+    LOGE("failed to registerThreeDimensionalOneFrameDataNativeMethods");
+    return JNI_ERR;
+  }
+
+  if (threedimensional::registerThreeDimensionalUtilsNativeMethods(env, reserved) == JNI_ERR) {
+    LOGE("failed to registerThreeDimensionalUtilsNativeMethods");
+    return JNI_ERR;
+  }
 
     LOGD("JNI_OnLoad: liblibrarybase.so has attached to system!");
 

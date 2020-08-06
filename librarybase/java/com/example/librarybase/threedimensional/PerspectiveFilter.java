@@ -1,7 +1,6 @@
 package com.example.librarybase.threedimensional;
 
 import android.opengl.GLES20;
-import com.example.librarybase.opengl.BaseGLUtils;
 import java.nio.FloatBuffer;
 
 /**
@@ -11,42 +10,40 @@ import java.nio.FloatBuffer;
  */
 public class PerspectiveFilter {
 
-    private String vertexShaderString;
-    private String fragmentShaderString;
-
-    private int program = 0;
-
-    private int positionAttribute = 0;
-    private int textureCoordinateAttribute = 0;
-
-    private int inputImageTextureUniform = 0;
-    private int mvpMatrixUniform; // 变换矩阵位置
-
-    private int outputTextureID = 0; // 用于离屏渲染内置的纹理
-    private int outputFrameBufferID = 0; // 用于离屏渲染内置的FBO，outputTextureID
-    private int width = 0; // 用于离屏渲染内置的纹理的宽
-    private int height = 0; // 用于离屏渲染内置的纹理的高
-
     // 顶点坐标
-    protected final float[] mImageVertices = {
+    protected final float[] imageVertices = {
             -1f, 1f, // top left
             1f, 1f,  // top right
             -1f, -1f, // bottom left
             1f, -1f, // bottom right
     };
-
     // 纹理坐标
-    protected final float[] mTextureCoordinates = {
+    protected final float[] textureCoordinates = {
             0f, 1f, // bottom left
             1f, 1f, // bottom right
             0f, 0f, // top left
             1f, 0f, // top right
     };
-
     // float[]转FloatBuffer
-    protected final FloatBuffer mImageVerticesBuffer = BaseGLUtils.floatArrayToFloatBuffer(mImageVertices);
-    protected final FloatBuffer mTextureCoordinatesBuffer = BaseGLUtils.floatArrayToFloatBuffer(mTextureCoordinates);
+    protected final FloatBuffer imageVerticesBuffer = BaseGLUtils
+            .floatArrayToFloatBuffer(imageVertices);
+    protected final FloatBuffer textureCoordinatesBuffer = BaseGLUtils
+            .floatArrayToFloatBuffer(textureCoordinates);
+    private String vertexShaderString;
+    private String fragmentShaderString;
+    private int program = 0;
+    private int positionAttribute = 0;
+    private int textureCoordinateAttribute = 0;
+    private int inputImageTextureUniform = 0;
+    private int mvpMatrixUniform; // 变换矩阵位置
+    private int outputTextureID = 0; // 用于离屏渲染内置的纹理
+    private int outputFrameBufferID = 0; // 用于离屏渲染内置的FBO，outputTextureID
+    private int width = 0; // 用于离屏渲染内置的纹理的宽
+    private int height = 0; // 用于离屏渲染内置的纹理的高
 
+    /**
+     * 透视
+     */
     public PerspectiveFilter() {
         vertexShaderString = ""
                 + "attribute vec4 position;\n"
@@ -69,6 +66,12 @@ public class PerspectiveFilter {
                 + "}\n";
     }
 
+    /**
+     * 初始化，必须在GL线程
+     *
+     * @param width 宽
+     * @param height 高
+     */
     public void init(int width, int height) {
         program = BaseGLUtils.createProgram(vertexShaderString, fragmentShaderString);
         if (program > 0) {
@@ -89,6 +92,9 @@ public class PerspectiveFilter {
         outputFrameBufferID = BaseGLUtils.createFBO(outputTextureID, width, height);
     }
 
+    /**
+     * 释放资源，必须在GL线程
+     */
     public void release() {
         GLES20.glDeleteProgram(program);
         program = 0;
@@ -100,32 +106,42 @@ public class PerspectiveFilter {
         height = 0;
     }
 
-    public int render(int inputTexture, float[] mvpMatrix) {
+    /**
+     * 渲染绘制效果
+     *
+     * @param inputTextureID 输入的原图的纹理ID
+     * @param mvpMatrix 透视矩阵
+     * @return 结果纹理ID
+     */
+    public int render(int inputTextureID, float[] mvpMatrix) {
 
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBufferID);
-        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outputTextureID, 0);
+        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0,
+                GLES20.GL_TEXTURE_2D, outputTextureID, 0);
 
         GLES20.glViewport(0, 0, width, height);
 
         // 清屏
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-        GLES20.glClearColor(0.0f,0.0f,0.0f,1.0f);
+        GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
         // 使用着色器绘制程序
         GLES20.glUseProgram(program);
 
         // 传入纹理
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, inputTexture);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, inputTextureID);
         GLES20.glUniform1i(inputImageTextureUniform, 0);
 
         // 传入顶点位置
         GLES20.glEnableVertexAttribArray(positionAttribute);
-        GLES20.glVertexAttribPointer(positionAttribute, 2, GLES20.GL_FLOAT, false, 8, mImageVerticesBuffer);
+        GLES20.glVertexAttribPointer(positionAttribute, 2, GLES20.GL_FLOAT, false, 8,
+                imageVerticesBuffer);
 
         // 传入纹理位置
         GLES20.glEnableVertexAttribArray(textureCoordinateAttribute);
-        GLES20.glVertexAttribPointer(textureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 8, mTextureCoordinatesBuffer);
+        GLES20.glVertexAttribPointer(textureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 8,
+                textureCoordinatesBuffer);
 
         GLES20.glUniformMatrix4fv(mvpMatrixUniform, 1, false, mvpMatrix, 0);
 

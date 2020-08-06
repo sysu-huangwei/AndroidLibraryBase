@@ -8,20 +8,81 @@ package com.example.librarybase.threedimensional;
  */
 public class ThreeDimensionalOneFrameData {
 
-    /* 景深效果程度 */
-    public float depthScale = 0.0f;
+//    static {
+//        System.loadLibrary("threedimensional");
+//    }
 
-    /* 透视效果程度 */
-    public float perspectiveScale = 0.0f;
+    /* 底层实例指针 */
+    private long nativeInstance = 0L;
 
-    /* x方向的景深偏移值 */
-    public float xShift = 0.0f;
+    private ThreeDimensionalOneFrameData() {
+        nativeInstance = nativeCreate();
+    }
 
-    /* y方向的景深偏移值 */
-    public float yShift = 0.0f;
+    ThreeDimensionalOneFrameData (long nativeInstance) {
+        this.nativeInstance = nativeInstance;
+    }
 
-    /* MVP矩阵，4*4 */
-    public float[] mvpMatrix = new float[16];
+    @Override
+    protected void finalize() {
+        nativeDestroy(nativeInstance);
+        nativeInstance = 0L;
+    }
 
+    /**
+     * 获取底层实例指针
+     */
+    long getNativeInstance() {
+        return nativeInstance;
+    }
+
+    /**
+     * 景深效果程度
+     */
+    public float getDepthScale() {
+        return nativeGetDepthScale(nativeInstance);
+    }
+
+    /**
+     * 透视效果程度
+     */
+    public float getPerspectiveScale() {
+        return nativeGetPerspectiveScale(nativeInstance);
+    }
+
+    /**
+     * x方向的景深偏移值
+     */
+    public float getXShift() {
+        return nativeGetXShift(nativeInstance);
+    }
+
+    /**
+     * y方向的景深偏移值
+     */
+    public float getYShift() {
+        return nativeGetYShift(nativeInstance);
+    }
+
+    /**
+     * MVP矩阵，4*4
+     */
+    public float[] getMvpMatrix() {
+        return nativeGetMvpMatrix(nativeInstance);
+    }
+
+    private native long nativeCreate();
+
+    private native void nativeDestroy(long nativeInstance);
+
+    private native float nativeGetDepthScale(long nativeInstance);
+
+    private native float nativeGetPerspectiveScale(long nativeInstance);
+
+    private native float nativeGetXShift(long nativeInstance);
+
+    private native float nativeGetYShift(long nativeInstance);
+
+    private native float[] nativeGetMvpMatrix(long nativeInstance);
 
 }

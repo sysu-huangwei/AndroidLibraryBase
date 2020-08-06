@@ -91,27 +91,28 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
     Bitmap material1;
     int materialTextureID1;
-    float materialDepth1 = 0.07f;
+    float materialDepth1 = 2.0f;
 
     Bitmap material2;
     int materialTextureID2;
-    float materialDepth2 = 0.2f;
+    float materialDepth2 = 1.5f;
 
     Bitmap material3;
     int materialTextureID3;
-    float materialDepth3 = 0.7f;
+    float materialDepth3 = 1.1f;
 
     Bitmap material4;
     int materialTextureID4;
-    float materialDepth4 = 1.5f;
+    float materialDepth4 = 0.8f;
 
     Bitmap material5;
     int materialTextureID5;
-    float materialDepth5 = 2.0f;
+    float materialDepth5 = 0.2f;
 
 
     int currentShiftIndex = 0;
-    @DirectionType String currentDirection = DIRECTION_TYPE_LEFT_RIGHT;
+//    @DirectionType String currentDirection = DIRECTION_TYPE_LEFT_RIGHT;
+    int currentDirection = 1;
     final Object shiftLock = new Object();
     ArrayList<ThreeDimensionalOneFrameData> threeDimensionalOneFrameDataArrayList;
 
@@ -185,11 +186,11 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         }
         bitmap = getBitmapFromAssets("自拍/" + imageFileList[currentFileIndex]);
         depth = getBitmapFromAssets("selfie_depth/" + depthFileList[currentFileIndex]);
-        material1 = getBitmapFromAssets("蝴蝶 (1).png");
-        material2 = getBitmapFromAssets("蝴蝶 (2).png");
-        material3 = getBitmapFromAssets("蝴蝶 (3).png");
-        material4 = getBitmapFromAssets("蝴蝶 (4).png");
-        material5 = getBitmapFromAssets("蝴蝶 (5).png");
+        material1 = getBitmapFromAssets("1.png");
+        material2 = getBitmapFromAssets("2.png");
+        material3 = getBitmapFromAssets("3.png");
+        material4 = getBitmapFromAssets("4.png");
+        material5 = getBitmapFromAssets("5.png");
 
         threeDimensionalOneFrameDataArrayList = ThreeDimensionalUtils.calculateThreeDimensionalData(
                 currentDirection, threeDSeekBar.getProgress() / (float)RATIO, perspectiveSeekBar.getProgress() / (float)RATIO, speedSeekBar.getProgress() / (float)RATIO);
@@ -343,13 +344,20 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     public void onClick(View v) {
         if (v.equals(mTakePictureButton)) {
             synchronized (shiftLock) {
-                if (currentDirection.equals(DIRECTION_TYPE_LEFT_RIGHT)) {
-                    currentDirection = DIRECTION_TYPE_UP_DOWN;
-                } else if (currentDirection.equals(DIRECTION_TYPE_UP_DOWN)) {
-                    currentDirection = DIRECTION_TYPE_CIRCLE;
+                if (currentDirection == 1) {
+                    currentDirection = 2;
+                } else if (currentDirection == 2) {
+                    currentDirection = 3;
                 } else {
-                    currentDirection = DIRECTION_TYPE_LEFT_RIGHT;
+                    currentDirection = 1;
                 }
+//                if (currentDirection.equals(DIRECTION_TYPE_LEFT_RIGHT)) {
+//                    currentDirection = DIRECTION_TYPE_UP_DOWN;
+//                } else if (currentDirection.equals(DIRECTION_TYPE_UP_DOWN)) {
+//                    currentDirection = DIRECTION_TYPE_CIRCLE;
+//                } else {
+//                    currentDirection = DIRECTION_TYPE_LEFT_RIGHT;
+//                }
                 threeDimensionalOneFrameDataArrayList = ThreeDimensionalUtils.calculateThreeDimensionalData(
                         currentDirection, threeDSeekBar.getProgress() / (float)RATIO, perspectiveSeekBar.getProgress() / (float)RATIO, speedSeekBar.getProgress() / (float)RATIO);
             }
