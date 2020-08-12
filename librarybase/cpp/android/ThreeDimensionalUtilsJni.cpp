@@ -13,9 +13,9 @@ namespace threedimensional {
 
 class ThreeDimensionalUtilsJni {
  public:
-  static jlongArray nativeCalculateThreeDimensionalData(JNIEnv *env, jclass clazz, jint directionType, jfloat depthScale, jfloat perspectiveScale, jfloat speed) {
+  static jlongArray nativeCalculateThreeDimensionalData(JNIEnv *env, jclass clazz, jint directionType, jfloat depthScale, jfloat perspectiveScale, jfloat speed, jint fps) {
     jlongArray threeDimensionalDataNativeInstances = 0;
-    std::vector<ThreeDimensionalOneFrameData> threeDimensionalOneFrameDatas = ThreeDimensionalUtils::calculateThreeDimensionalData(directionType, depthScale, perspectiveScale, speed);
+    std::vector<ThreeDimensionalOneFrameData> threeDimensionalOneFrameDatas = ThreeDimensionalUtils::calculateThreeDimensionalData(directionType, depthScale, perspectiveScale, speed, fps);
     if (!threeDimensionalOneFrameDatas.empty()) {
       threeDimensionalDataNativeInstances = env->NewLongArray(threeDimensionalOneFrameDatas.size());
       for (int i = 0; i < threeDimensionalOneFrameDatas.size(); ++i) {
@@ -32,7 +32,7 @@ class ThreeDimensionalUtilsJni {
 
 // jni 接口映射
 static JNINativeMethod methods[] = {
-    {"nativeCalculateThreeDimensionalData", "(IFFF)[J",  (void *) ThreeDimensionalUtilsJni::nativeCalculateThreeDimensionalData},
+    {"nativeCalculateThreeDimensionalData", "(IFFFI)[J",  (void *) ThreeDimensionalUtilsJni::nativeCalculateThreeDimensionalData},
 };
 
 int registerThreeDimensionalUtilsNativeMethods(JNIEnv *env, void *reserved) {

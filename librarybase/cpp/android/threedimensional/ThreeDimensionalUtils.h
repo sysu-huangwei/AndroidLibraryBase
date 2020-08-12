@@ -30,28 +30,32 @@ class ThreeDimensionalUtils {
    * @param depthScale 景深效果程度，最小0，最大1，默认0.5
    * @param perspectiveScale 透视效果程度，最小0，最大1，默认0.3
    * @param speed 效果速度，最小0，最大1，默认0.5
+   * @param fps 帧率
    * @return 3D效果数据
    */
   static std::vector<ThreeDimensionalOneFrameData>
   calculateThreeDimensionalData(
-      int directionType, float depthScale, float perspectiveScale, float speed);
+      int directionType, float depthScale, float perspectiveScale, float speed,
+      int fps);
 
   /**
-   * 通过设置的速度计算步长（默认速度时步长是 DEFAULT_STEP，
-   * 速度最小时步长是2倍默认值 2*DEFAULT_STEP）
+   * 通过设置的速度和帧率计算步长，计算方式：1周期步长=帧率/速度
+   * 速度最快时(speed = 1)，1个周期的步长=帧率
+   * 速度最慢时(speed = 0)，1个周期的步长=步长上限 MAX_STEP
    *
    * @param speed 效果速度，最小0，最大1，默认0.5
-   * @return 1/4个周期的步长（周期，或者说是=1/频率）
+   * @param fps 帧率
+   * @return 1个完整周期的步长（周期=1/频率）
    */
 
-   static int getStepBySpeed(float speed);
+  static int getStepBySpeedAndFPS(float speed, int fps);
 
   /**
    * 获取前景后景坐标偏移量
    *
    * @param direction 运动方向类型
    * @param threshold 最大偏移量
-   * @param step 1/4周期的步长
+   * @param step 1个完整周期的步长（周期=1/频率）
    * @return first：x方向偏移量  second：y方向偏移量
    */
   static std::pair<std::vector<float>, std::vector<float > > getShift(

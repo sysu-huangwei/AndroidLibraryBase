@@ -10,17 +10,18 @@ namespace threedimensional {
 /* 默认的运动幅度的最大值（振幅） */
 const static float DEFAULT_THRESHOLD = 0.5f;
 
-/* 默认的步长。【步长：1/4个周期的步长（周期，或者说是=1/频率）】 */
-const static int DEFAULT_STEP = 20;
+/* 最大的步长 */
+const static int MAX_STEP = 300;
 
 std::vector<ThreeDimensionalOneFrameData>
 ThreeDimensionalUtils::calculateThreeDimensionalData(int directionType,
                                                      float depthScale,
                                                      float perspectiveScale,
-                                                     float speed) {
+                                                     float speed,
+                                                     int fps) {
   std::vector<ThreeDimensionalOneFrameData> result;
   std::pair<std::vector<float>, std::vector<float> > shift = getShift(directionType, DEFAULT_THRESHOLD,
-                                                                      getStepBySpeed(speed));
+                                                                      getStepBySpeedAndFPS(speed, fps));
   for (int i = 0; i < shift.first.size(); i++) {
     ThreeDimensionalOneFrameData threeDimensionalOneFrameData;
     threeDimensionalOneFrameData.xShift = shift.first.at(i);
@@ -36,22 +37,23 @@ ThreeDimensionalUtils::calculateThreeDimensionalData(int directionType,
   return result;
 }
 
-int ThreeDimensionalUtils::getStepBySpeed(float speed) {
-  int step = (int) ((-2.0f) * speed * DEFAULT_STEP) + 2 * DEFAULT_STEP;
-  if (step <= 0) {
-    step = 1;
+int ThreeDimensionalUtils::getStepBySpeedAndFPS(float speed, int fps) {
+  if (speed > 0) {
+    int step =  (int) ((float) fps / speed);
+    return step > MAX_STEP ? MAX_STEP : step;
   }
-  return step;
+  return MAX_STEP;
 }
 
 std::pair<std::vector<float>, std::vector<float> >
 ThreeDimensionalUtils::getShift(int direction, float threshold, int step) {
+  int quarterStep = step / 4;
   std::vector<float> xShift;
   std::vector<float> yShift;
   if (direction == DIRECTION_TYPE_LEFT_RIGHT || direction == DIRECTION_TYPE_UP_DOWN) {
     std::vector<float> positive;
     std::vector<float> negative;
-    for (float f = 0.0f; f < threshold; f += (threshold / step)) {
+    for (float f = 0.0f; f < threshold; f += (threshold / quarterStep)) {
       positive.push_back(f);
       negative.push_back(-f);
     }
@@ -67,12 +69,12 @@ ThreeDimensionalUtils::getShift(int direction, float threshold, int step) {
       yShift = std::vector<float>(animalFunction.size(), 0);
     } else {
       xShift = std::vector<float>(animalFunction.size(), 0);
-      yShift.insert(xShift.end(), animalFunction.begin(), animalFunction.end());
+      yShift.insert(yShift.end(), animalFunction.begin(), animalFunction.end());
     }
 
   } else if (direction == DIRECTION_TYPE_CIRCLE) {
     float fullDeg = (float) M_PI * 2.0f;
-    for (float f = 0.0f; f < fullDeg; f += fullDeg / step / 4.0f) {
+    for (float f = 0.0f; f < fullDeg; f += fullDeg / quarterStep / 4.0f) {
       xShift.push_back(threshold * (float) std::cos(f));
       yShift.push_back(threshold * (float) std::sin(f));
     }

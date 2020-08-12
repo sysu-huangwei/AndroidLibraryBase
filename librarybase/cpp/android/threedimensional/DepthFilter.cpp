@@ -140,6 +140,10 @@ const static GLfloat textureCoordinates[8] = {
     1.0f, 0.0f, // top right
 };
 
+/* 素材图景深值的最大值，越大表示越靠近屏幕 */
+/* 外部会传递 0 ~ 1 的景深值，在内部映射到 0 ~ MATERIAL_DEPTH_MAX 上 */
+const static float MATERIAL_DEPTH_MAX = 2.0f;
+
 void DepthFilter::init(int width, int height) {
   program = BaseGLUtils::createProgram(DEPTH_FILTER_SHADER_VERTEX, DEPTH_FILTER_SHADER_FRAGMENT);
   if (program > 0) {
@@ -225,7 +229,8 @@ GLuint DepthFilter::render(GLuint inputTextureID,
     glUniform1i(depthImageTextureOriginUniform, 2);
 
     for (int i = 0; i < materialTextureAndDepth.size(); i++) {
-        glUniform1f(materialDepthUniform[i], materialTextureAndDepth[i].second);
+        glUniform1f(materialDepthUniform[i],
+            materialTextureAndDepth[i].second * MATERIAL_DEPTH_MAX);
         if (materialTextureAndDepth[i].second >= 0.0f) {
             glActiveTexture(GL_TEXTURE3 + i);
             glBindTexture(GL_TEXTURE_2D, materialTextureAndDepth[i].first);

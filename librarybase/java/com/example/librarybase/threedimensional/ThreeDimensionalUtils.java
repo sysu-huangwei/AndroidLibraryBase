@@ -31,9 +31,9 @@ public class ThreeDimensionalUtils {
      * @param speed 效果速度，最小0，最大1，默认0.5
      * @return 3D效果数据
      */
-    public static ArrayList<ThreeDimensionalOneFrameData> calculateThreeDimensionalData(@DirectionType int directionType, float depthScale, float perspectiveScale, float speed) {
+    public static ArrayList<ThreeDimensionalOneFrameData> calculateThreeDimensionalData(@DirectionType int directionType, float depthScale, float perspectiveScale, float speed, int fps) {
         ArrayList<ThreeDimensionalOneFrameData> result = new ArrayList<>();
-        long[] threeDimensionalOneFrameDataNativeInstances = nativeCalculateThreeDimensionalData(directionType, depthScale, perspectiveScale, speed);
+        long[] threeDimensionalOneFrameDataNativeInstances = nativeCalculateThreeDimensionalData(directionType, depthScale, perspectiveScale, speed, fps);
         if (threeDimensionalOneFrameDataNativeInstances != null) {
             for (long threeDimensionalOneFrameDataNativeInstance : threeDimensionalOneFrameDataNativeInstances) {
                 result.add(new ThreeDimensionalOneFrameData(threeDimensionalOneFrameDataNativeInstance));
@@ -42,7 +42,7 @@ public class ThreeDimensionalUtils {
         return result;
     }
 
-    private static native long[] nativeCalculateThreeDimensionalData(@DirectionType int directionType, float depthScale, float perspectiveScale, float speed);
+    private static native long[] nativeCalculateThreeDimensionalData(@DirectionType int directionType, float depthScale, float perspectiveScale, float speed, int fps);
 
     /**
      * 运动方向类型

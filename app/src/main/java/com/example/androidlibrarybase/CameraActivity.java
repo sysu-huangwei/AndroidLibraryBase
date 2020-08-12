@@ -112,7 +112,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
     int currentShiftIndex = 0;
 //    @DirectionType String currentDirection = DIRECTION_TYPE_LEFT_RIGHT;
-    int currentDirection = 1;
+    @DirectionType int currentDirection = DIRECTION_TYPE_LEFT_RIGHT;
     final Object shiftLock = new Object();
     ArrayList<ThreeDimensionalOneFrameData> threeDimensionalOneFrameDataArrayList;
 
@@ -193,7 +193,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         material5 = getBitmapFromAssets("5.png");
 
         threeDimensionalOneFrameDataArrayList = ThreeDimensionalUtils.calculateThreeDimensionalData(
-                currentDirection, threeDSeekBar.getProgress() / (float)RATIO, perspectiveSeekBar.getProgress() / (float)RATIO, speedSeekBar.getProgress() / (float)RATIO);
+                currentDirection, threeDSeekBar.getProgress() / (float)RATIO, perspectiveSeekBar.getProgress() / (float)RATIO, speedSeekBar.getProgress() / (float)RATIO, 30);
 
         ArrayList<Pair<Integer, Float>> materialTextureAndDepth = new ArrayList<>();
 
@@ -359,7 +359,8 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 //                    currentDirection = DIRECTION_TYPE_LEFT_RIGHT;
 //                }
                 threeDimensionalOneFrameDataArrayList = ThreeDimensionalUtils.calculateThreeDimensionalData(
-                        currentDirection, threeDSeekBar.getProgress() / (float)RATIO, perspectiveSeekBar.getProgress() / (float)RATIO, speedSeekBar.getProgress() / (float)RATIO);
+                        currentDirection, threeDSeekBar.getProgress() / (float)RATIO, perspectiveSeekBar.getProgress() / (float)RATIO, speedSeekBar.getProgress() / (float)RATIO, 30);
+                currentShiftIndex = 0;
             }
         }
         if (v.equals(mSwitchCameraFacingButton)) {
@@ -438,7 +439,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         if (seekBar.equals(threeDSeekBar) || seekBar.equals(perspectiveSeekBar) || seekBar.equals(speedSeekBar)) {
             synchronized (shiftLock) {
                 threeDimensionalOneFrameDataArrayList = ThreeDimensionalUtils.calculateThreeDimensionalData(
-                        currentDirection, threeDSeekBar.getProgress() / (float)RATIO, perspectiveSeekBar.getProgress() / (float)RATIO, speedSeekBar.getProgress() / (float)RATIO);
+                        currentDirection, threeDSeekBar.getProgress() / (float)RATIO, perspectiveSeekBar.getProgress() / (float)RATIO, speedSeekBar.getProgress() / (float)RATIO, 30);
                 currentShiftIndex = 0;
             }
         }

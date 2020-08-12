@@ -58,7 +58,7 @@ public class ThreeDimensionalFilter {
      *
      * @param imageTextureID 原始图片的纹理ID
      * @param originDepthTextureID 原始景深图的纹理ID
-     * @param materialTextureAndDepth 素材的纹理ID及其对应的景深值
+     * @param materialTextureAndDepth 素材的纹理ID及其对应的景深值（景深值 0 ~ 1  0代表最远离屏幕，1代表最靠近屏幕）
      * @param threeDimensionalOneFrameData 3D效果其他参数
      * @return 结果纹理ID
      */
