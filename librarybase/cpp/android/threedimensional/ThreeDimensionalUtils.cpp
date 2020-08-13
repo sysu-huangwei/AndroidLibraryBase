@@ -47,13 +47,14 @@ int ThreeDimensionalUtils::getStepBySpeedAndFPS(float speed, int fps) {
 
 std::pair<std::vector<float>, std::vector<float> >
 ThreeDimensionalUtils::getShift(int direction, float threshold, int step) {
-  int quarterStep = step / 4;
   std::vector<float> xShift;
   std::vector<float> yShift;
   if (direction == DIRECTION_TYPE_LEFT_RIGHT || direction == DIRECTION_TYPE_UP_DOWN) {
     std::vector<float> positive;
     std::vector<float> negative;
-    for (float f = 0.0f; f < threshold; f += (threshold / quarterStep)) {
+    float quarterStep = (float) step / 4;
+    float increaseStep = threshold / quarterStep;
+    for (float f = 0.0f; f < threshold; f += increaseStep) {
       positive.push_back(f);
       negative.push_back(-f);
     }
@@ -74,7 +75,8 @@ ThreeDimensionalUtils::getShift(int direction, float threshold, int step) {
 
   } else if (direction == DIRECTION_TYPE_CIRCLE) {
     float fullDeg = (float) M_PI * 2.0f;
-    for (float f = 0.0f; f < fullDeg; f += fullDeg / quarterStep / 4.0f) {
+    float increaseDeg = fullDeg / (float) step;
+    for (float f = 0.0f; f < fullDeg; f += increaseDeg) {
       xShift.push_back(threshold * (float) std::cos(f));
       yShift.push_back(threshold * (float) std::sin(f));
     }

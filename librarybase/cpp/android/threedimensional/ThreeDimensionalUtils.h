@@ -38,6 +38,8 @@ class ThreeDimensionalUtils {
       int directionType, float depthScale, float perspectiveScale, float speed,
       int fps);
 
+ private:
+
   /**
    * 通过设置的速度和帧率计算步长，计算方式：1周期步长=帧率/速度
    * 速度最快时(speed = 1)，1个周期的步长=帧率
