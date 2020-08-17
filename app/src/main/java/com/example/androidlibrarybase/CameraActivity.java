@@ -1,5 +1,11 @@
 package com.example.androidlibrarybase;
 
+import static android.view.View.INVISIBLE;
+
+import android.content.res.AssetManager;
+import android.graphics.BitmapFactory;
+import android.graphics.RectF;
+import android.opengl.GLES20;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.graphics.Bitmap;
@@ -10,11 +16,17 @@ import android.view.SurfaceHolder;
 import android.view.View;
 import android.widget.Button;
 
+import com.example.librarybase.number.NumberItem;
+import com.example.librarybase.number.NumberRollFilter;
 import com.example.librarybase.opengl.Base2DTexturePainter;
 import com.example.librarybase.opengl.BaseCamera;
+import com.example.librarybase.opengl.BaseGLUtils;
 import com.example.librarybase.opengl.BasePointPainter;
 import com.example.librarybase.opengl.BaseRectPainter;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
@@ -37,6 +49,19 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     BasePointPainter mBasePointPainter = new BasePointPainter();
     BaseRectPainter mBaseRectPainter = new BaseRectPainter();
 
+    Bitmap bitmap = null;
+    int bitmapTextureID = 0;
+
+    Bitmap numberBitmap = null;
+    int numberTextureID = 0;
+
+    NumberRollFilter numberRollFilter = new NumberRollFilter();
+
+    NumberItem numberItem0 = new NumberItem();
+    NumberItem numberItem1 = new NumberItem();
+    NumberItem numberItem2 = new NumberItem();
+    ArrayList<NumberItem> numberItems = new ArrayList<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,10 +73,57 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         mChangeCameraRatioButton.setOnClickListener(this);
         mTakePictureButton = findViewById(R.id.take_picture);
         mTakePictureButton.setOnClickListener(this);
+        mSwitchCameraFacingButton.setVisibility(INVISIBLE);
+        mChangeCameraRatioButton.setVisibility(INVISIBLE);
+        mTakePictureButton.setVisibility(INVISIBLE);
 
+        numberItem0.left = 0.2f;
+        numberItem0.top = 0.2f;
+        numberItem0.right = 0.4f;
+        numberItem0.bottom = 0.5f;
+        numberItem0.maxSpeed = 1.0f;
+        numberItem0.speedUpTime = 1.0f;
+        numberItem0.continueTime = 1.0f;
+        numberItem0.stopTime = 3.0f;
+        numberItem0.targetNumber = 3;
+
+        numberItem1.left = 0.4f;
+        numberItem1.top = 0.2f;
+        numberItem1.right = 0.6f;
+        numberItem1.bottom = 0.5f;
+        numberItem1.maxSpeed = 1.0f;
+        numberItem1.speedUpTime = 1.0f;
+        numberItem1.continueTime = 2.0f;
+        numberItem1.stopTime = 3.0f;
+        numberItem1.targetNumber = 1;
+
+        numberItem2.left = 0.6f;
+        numberItem2.top = 0.2f;
+        numberItem2.right = 0.8f;
+        numberItem2.bottom = 0.5f;
+        numberItem2.maxSpeed = 1.0f;
+        numberItem2.speedUpTime = 1.0f;
+        numberItem2.continueTime = 3.0f;
+        numberItem2.stopTime = 3.0f;
+        numberItem2.targetNumber = 7;
+
+        numberItems.add(numberItem0);
+        numberItems.add(numberItem1);
+        numberItems.add(numberItem2);
 
         mGLSurfaceView = findViewById(R.id.gl_surface_view);
         mGLSurfaceView.setEGLContextClientVersion(2);
+
+        AssetManager assetManager = this.getAssets();
+        InputStream inputStream = null;
+        try {
+            inputStream = assetManager.open("人物.jpeg");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        bitmap = getBitmapFromAssets("人物.jpeg");
+        numberBitmap = getBitmapFromAssets("number.png");
+
 
         mGLSurfaceView.setRenderer(new GLSurfaceView.Renderer() {
             @Override
@@ -60,6 +132,9 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                 mBase2DTexturePainter.init();
                 mBasePointPainter.init();
                 mBaseRectPainter.init();
+                bitmapTextureID = BaseGLUtils.createTextures2DWithBitmap(bitmap, GLES20.GL_RGBA);
+                numberTextureID = BaseGLUtils.createTextures2DWithBitmap(numberBitmap, GLES20.GL_RGBA);
+                numberRollFilter.init(bitmap.getWidth(), bitmap.getHeight());
             }
 
             @Override
@@ -70,90 +145,12 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
             @Override
             public void onDrawFrame(GL10 gl) {
-                int cameraOutputTexture = mBaseCamera.render();
-//                mBase2DTexturePainter.render(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
-//                mBaseRectPainter.setRectPoints(new float[] {0.25f, 0.25f, 0.75f, 0.75f, 0.3f, 0.3f, 0.6f, 0.6f});
-                int pointOutTexture = mBasePointPainter.renderToInnerFBO(cameraOutputTexture, mBaseCamera.getOutputTextureWidth(), mBaseCamera.getOutputTextureHeight());
-                int rectOutTexture = mBaseRectPainter.renderToInnerFBO(pointOutTexture, mBasePointPainter.getOutputTextureWidth(), mBasePointPainter.getOutputTextureHeight());
-                mBase2DTexturePainter.render(rectOutTexture, mBaseRectPainter.getOutputTextureWidth(), mBaseRectPainter.getOutputTextureHeight(), surfaceWidth, surfaceHeight);
+                int numberRollTextureID = numberRollFilter.render(bitmapTextureID, numberTextureID, numberItems);
+                mBase2DTexturePainter.render(numberRollTextureID, bitmap.getWidth(), bitmap.getHeight(), surfaceWidth, surfaceHeight);
             }
         });
 
-        mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
-
-        mGLSurfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
-            @Override
-            public void surfaceCreated(SurfaceHolder holder) {
-                mBaseCamera.initCamera();
-                mBaseCamera.setupCamera();
-                mBaseCamera.startPreview();
-            }
-
-            @Override
-            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-            }
-
-            @Override
-            public void surfaceDestroyed(SurfaceHolder holder) {
-                mBaseCamera.stopPreview();
-                mBaseCamera.releaseCamera();
-            }
-        });
-
-        mBaseCamera.setBaseCameraCallback(new BaseCamera.BaseCameraCallback() {
-            @Override
-            public void onFrameAvailable() {
-                mGLSurfaceView.requestRender();
-            }
-
-            @Override
-            public void onInitGLComplete() {
-                mBaseCamera.initCamera();
-                mBaseCamera.setupCamera();
-                mBaseCamera.startPreview();
-                mBaseCamera.setFaceDetectEnable(true);
-            }
-
-            @Override
-            public void onTakePictureEnd(Bitmap bitmap) {
-                mGLSurfaceView.requestRender();
-            }
-
-            @Override
-            public void onFaceDetected(Camera.Face[] faces, int width, int height) {
-                if (faces != null && faces.length > 0) {
-                    float[] points = new float[6 * faces.length];
-                    float[] rectPoints = new float[4 * faces.length];
-                    for (int i = 0; i < faces.length; i++) {
-                        Camera.Face face = faces[i];
-                        points[6 * i] = (float)face.leftEye.x / (float)width;
-                        points[6 * i + 1] = (float)face.leftEye.y / (float)height;
-                        points[6 * i + 2] = (float)face.rightEye.x / (float)width;
-                        points[6 * i + 3] = (float)face.rightEye.y / (float)height;
-                        points[6 * i + 4] = (float)face.mouth.x / (float)width;
-                        points[6 * i + 5] = (float)face.mouth.y / (float)height;
-                        rectPoints[4 * i] = (float)face.rect.left / (float)width;
-                        rectPoints[4 * i + 1] = (float)face.rect.top / (float)height;
-                        rectPoints[4 * i + 2] = (float)face.rect.right / (float)width;
-                        rectPoints[4 * i + 3] = (float)face.rect.bottom / (float)height;
-                    }
-                    for (int i = 0; i < points.length / 2; i++) {
-                        float originX = points[2 * i];
-                        float originY = points[2 * i + 1];
-                        points[2 * i] = -originY;
-                        points[2 * i + 1] = originX;
-                    }
-                    for (int i = 0; i < rectPoints.length / 2; i++) {
-                        float originX = rectPoints[2 * i];
-                        float originY = rectPoints[2 * i + 1];
-                        rectPoints[2 * i] = -originY;
-                        rectPoints[2 * i + 1] = originX;
-                    }
-                    mBasePointPainter.setPoints(points);
-                    mBaseRectPainter.setRectPoints(rectPoints);
-                }
-            }
-        });
+        mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
     }
 
     @Override
@@ -183,4 +180,16 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             }
         }
     }
+
+    private Bitmap getBitmapFromAssets(String path) {
+        AssetManager assetManager = this.getAssets();
+        InputStream inputStream = null;
+        try {
+            inputStream = assetManager.open(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return BitmapFactory.decodeStream(inputStream);
+    }
+
 }
