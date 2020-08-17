@@ -189,11 +189,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         } else if (v.equals(mOKButton)) {
             String numberString = mNumberInputEditText.getText().toString();
             int number = Integer.parseInt(numberString);
-            numberItem2.targetNumber = number % 10;
-            number /= 10;
-            numberItem1.targetNumber = number % 10;
-            number /= 10;
-            numberItem0.targetNumber = number % 10;
+            numberRollFilter.setTargetNumber(number);
             numberRollFilter.reset();
         }
     }

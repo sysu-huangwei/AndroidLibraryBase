@@ -186,6 +186,20 @@ public class NumberRollFilter {
     }
 
     /**
+     * 设置需要显示的目标数字
+     *
+     * @param targetNumber 目标数字
+     */
+    public void setTargetNumber(int targetNumber) {
+        if (numberItemArrayList != null) {
+            for (int i = numberItemArrayList.size() - 1; i >= 0; --i) {
+                numberItemArrayList.get(i).targetNumber = targetNumber % 10;
+                targetNumber /= 10;
+            }
+        }
+    }
+
+    /**
      * 重置动画，重置后会重新播放滚动动画
      */
     public void reset() {
