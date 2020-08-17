@@ -1,7 +1,5 @@
 package com.example.librarybase.number;
 
-import android.util.Log;
-
 /**
  * User: rayyyhuang
  * Date: 2020/8/14
@@ -9,26 +7,41 @@ import android.util.Log;
  */
 public class NumberItem {
 
+    /* 数字框的左边界 */
     public float left = 0.0f;
 
+    /* 数字框的上边界 */
     public float top = 0.0f;
 
+    /* 数字框的右边界 */
     public float right = 0.0f;
 
+    /* 数字框的下边界 */
     public float bottom = 0.0f;
 
+    /* 最大速度，1.0代表每秒循环一次0到9 */
     public float maxSpeed = 0.0f;
 
+    /* 加速时间，单位秒 */
     public float speedUpTime = 0.0f;
 
+    /* 最大速度持续时间，单位秒 */
     public float continueTime = 0.0f;
 
+    /* 减速时间，单位秒 */
     public float stopTime = 0.0f;
 
+    /* 目标数字 */
     public int targetNumber = 0;
 
+    /* 当前绘制的位置，0.1代表画数字1，0.3代表画数字3，0.75代表画7到8中间的部分 */
     float currentPosition = 0.0f;
 
+    /**
+     * 根据当前的时间戳计算当前绘制的位置
+     *
+     * @param currentTime 时间戳
+     */
     public void calculateCurrentPosition(float currentTime) {
         if (currentTime < speedUpTime) {
             //加速阶段

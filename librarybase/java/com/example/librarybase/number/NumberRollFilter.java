@@ -1,7 +1,6 @@
 package com.example.librarybase.number;
 
 import android.opengl.GLES20;
-import android.util.Log;
 import com.example.librarybase.opengl.BaseGLUtils;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
@@ -37,17 +36,15 @@ public class NumberRollFilter {
     private int width = 0; // 用于离屏渲染内置的纹理的宽
     private int height = 0; // 用于离屏渲染内置的纹理的高
 
-    private float currentY = 0.0f;
-    private float increaseSpeed = 0.0002f;
-    private float maxSpeed = 0.036f;
-    private float decreaseSpeed = 0.0005f;
-    private int currentMaxSpeedFrame = 0;
-    private int maxSpeedFrame = 30;
-    private float step = 0.002f;
-
+    /* 是否需要重置动画 */
     private boolean isNeedReset = true;
+    /* 动画开始的时间 */
     private long startTime = 0L;
+    /* 当前已经经过的时间 */
     private long currentTime = 0L;
+
+    /* 数字的配置信息 */
+    private ArrayList<NumberItem> numberItemArrayList = new ArrayList<>();
 
     // 顶点坐标
     protected final float[] imageVertices = {
@@ -69,6 +66,9 @@ public class NumberRollFilter {
     protected final FloatBuffer imageVerticesBuffer = BaseGLUtils.floatArrayToFloatBuffer(imageVertices);
     protected final FloatBuffer textureCoordinatesBuffer = BaseGLUtils.floatArrayToFloatBuffer(textureCoordinates);
 
+    /**
+     * Description: 数字滚动滤镜
+     */
     public NumberRollFilter() {
         vertexShaderString = ""
                 + "attribute vec4 position;\n"
@@ -131,6 +131,12 @@ public class NumberRollFilter {
                 + "}\n";
     }
 
+    /**
+     * 初始化，必须在GL线程
+     *
+     * @param width 宽
+     * @param height 高
+     */
     public void init(int width, int height) {
         program = BaseGLUtils.createProgram(vertexShaderString, fragmentShaderString);
         if (program > 0) {
@@ -156,6 +162,9 @@ public class NumberRollFilter {
         outputFrameBufferID = BaseGLUtils.createFBO(outputTextureID, width, height);
     }
 
+    /**
+     * 释放资源，必须在GL线程
+     */
     public void release() {
         GLES20.glDeleteProgram(program);
         program = 0;
@@ -167,15 +176,38 @@ public class NumberRollFilter {
         height = 0;
     }
 
-    public int render(int inputTextureID, int numberTextureID, ArrayList<NumberItem> numberItemArrayList) {
+    /**
+     * 设置需要显示的数字信息
+     *
+     * @param numberItemArrayList 数字信息
+     */
+    public void setNumberItemArrayList(ArrayList<NumberItem> numberItemArrayList) {
+        this.numberItemArrayList = numberItemArrayList;
+    }
+
+    /**
+     * 重置动画，重置后会重新播放滚动动画
+     */
+    public void reset() {
+        isNeedReset = true;
+        currentTime = 0;
+    }
+
+    /**
+     * 渲染
+     *
+     * @param inputTextureID 输入的原图纹理ID
+     * @param numberTextureID 数字图片的纹理ID
+     * @param time 当前的时间戳
+     * @return 结果纹理
+     */
+    public int render(int inputTextureID, int numberTextureID, long time) {
 
         if (isNeedReset) {
-            startTime = System.currentTimeMillis();
+            startTime = time;
             isNeedReset = false;
-            Log.w("hw2", "render: startTime = " + startTime);
         } else {
-            currentTime = System.currentTimeMillis() - startTime;
-            Log.e("hw2", "render: startTime = " + startTime + " currentTime = " + currentTime);
+            currentTime = time - startTime;
         }
 
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, outputFrameBufferID);
@@ -199,34 +231,23 @@ public class NumberRollFilter {
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, numberTextureID);
         GLES20.glUniform1i(numberTextureUniform, 1);
 
-        GLES20.glUniform1i(boxCountUniform, 3);
+        GLES20.glUniform1i(boxCountUniform, numberItemArrayList.size());
 
-        GLES20.glUniform4f(box1Uniform, numberItemArrayList.get(0).left, numberItemArrayList.get(0).top, numberItemArrayList.get(0).right, numberItemArrayList.get(0).bottom);
-        GLES20.glUniform4f(box2Uniform, numberItemArrayList.get(1).left, numberItemArrayList.get(1).top, numberItemArrayList.get(1).right, numberItemArrayList.get(1).bottom);
-        GLES20.glUniform4f(box3Uniform, numberItemArrayList.get(2).left, numberItemArrayList.get(2).top, numberItemArrayList.get(2).right, numberItemArrayList.get(2).bottom);
-
-        numberItemArrayList.get(0).calculateCurrentPosition(currentTime / 1000.0f);
-        numberItemArrayList.get(1).calculateCurrentPosition(currentTime / 1000.0f);
-        numberItemArrayList.get(2).calculateCurrentPosition(currentTime / 1000.0f);
-
-        GLES20.glUniform1f(currentY1Uniform, numberItemArrayList.get(0).currentPosition);
-        GLES20.glUniform1f(currentY2Uniform, numberItemArrayList.get(1).currentPosition);
-        GLES20.glUniform1f(currentY3Uniform, numberItemArrayList.get(2).currentPosition);
-        currentY += step;
-        if (currentY >= 1.0f) {
-            currentY = 0.0f;
+        if (numberItemArrayList.size() > 0) {
+            GLES20.glUniform4f(box1Uniform, numberItemArrayList.get(0).left, numberItemArrayList.get(0).top, numberItemArrayList.get(0).right, numberItemArrayList.get(0).bottom);
+            numberItemArrayList.get(0).calculateCurrentPosition(currentTime / 1000.0f);
+            GLES20.glUniform1f(currentY1Uniform, numberItemArrayList.get(0).currentPosition);
+            if (numberItemArrayList.size() > 1) {
+                GLES20.glUniform4f(box2Uniform, numberItemArrayList.get(1).left, numberItemArrayList.get(1).top, numberItemArrayList.get(1).right, numberItemArrayList.get(1).bottom);
+                numberItemArrayList.get(1).calculateCurrentPosition(currentTime / 1000.0f);
+                GLES20.glUniform1f(currentY2Uniform, numberItemArrayList.get(1).currentPosition);
+                if (numberItemArrayList.size() > 2) {
+                    GLES20.glUniform4f(box3Uniform, numberItemArrayList.get(2).left, numberItemArrayList.get(2).top, numberItemArrayList.get(2).right, numberItemArrayList.get(2).bottom);
+                    numberItemArrayList.get(2).calculateCurrentPosition(currentTime / 1000.0f);
+                    GLES20.glUniform1f(currentY3Uniform, numberItemArrayList.get(2).currentPosition);
+                }
+            }
         }
-//        if (step < maxSpeed && currentMaxSpeedFrame < maxSpeedFrame) {
-//            step += increaseSpeed;
-//        } else {
-//            currentMaxSpeedFrame++;
-//            if (currentMaxSpeedFrame > maxSpeedFrame) {
-//                step -= decreaseSpeed;
-//                if (step < 0.0f) {
-//                    step = 0.0f;
-//                }
-//            }
-//        }
 
         // 传入顶点位置
         GLES20.glEnableVertexAttribArray(positionAttribute);

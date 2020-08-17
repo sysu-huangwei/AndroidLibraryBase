@@ -6,6 +6,8 @@ import android.content.res.AssetManager;
 import android.graphics.BitmapFactory;
 import android.graphics.RectF;
 import android.opengl.GLES20;
+import android.util.Log;
+import android.widget.EditText;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.graphics.Bitmap;
@@ -35,6 +37,8 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     private Button mSwitchCameraFacingButton;
     private Button mChangeCameraRatioButton;
     private Button mTakePictureButton;
+    private Button mOKButton;
+    private EditText mNumberInputEditText;
 
     private GLSurfaceView mGLSurfaceView;
     private int surfaceWidth = 0;
@@ -73,6 +77,9 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         mChangeCameraRatioButton.setOnClickListener(this);
         mTakePictureButton = findViewById(R.id.take_picture);
         mTakePictureButton.setOnClickListener(this);
+        mOKButton = findViewById(R.id.button_OK);
+        mOKButton.setOnClickListener(this);
+        mNumberInputEditText = findViewById(R.id.number_input);
         mSwitchCameraFacingButton.setVisibility(INVISIBLE);
         mChangeCameraRatioButton.setVisibility(INVISIBLE);
         mTakePictureButton.setVisibility(INVISIBLE);
@@ -110,6 +117,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         numberItems.add(numberItem0);
         numberItems.add(numberItem1);
         numberItems.add(numberItem2);
+        numberRollFilter.setNumberItemArrayList(numberItems);
 
         mGLSurfaceView = findViewById(R.id.gl_surface_view);
         mGLSurfaceView.setEGLContextClientVersion(2);
@@ -145,7 +153,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
             @Override
             public void onDrawFrame(GL10 gl) {
-                int numberRollTextureID = numberRollFilter.render(bitmapTextureID, numberTextureID, numberItems);
+                int numberRollTextureID = numberRollFilter.render(bitmapTextureID, numberTextureID, System.currentTimeMillis());
                 mBase2DTexturePainter.render(numberRollTextureID, bitmap.getWidth(), bitmap.getHeight(), surfaceWidth, surfaceHeight);
             }
         });
@@ -178,6 +186,15 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                 mIsTakingPicture = false;
                 mBaseCamera.startPreview();
             }
+        } else if (v.equals(mOKButton)) {
+            String numberString = mNumberInputEditText.getText().toString();
+            int number = Integer.parseInt(numberString);
+            numberItem2.targetNumber = number % 10;
+            number /= 10;
+            numberItem1.targetNumber = number % 10;
+            number /= 10;
+            numberItem0.targetNumber = number % 10;
+            numberRollFilter.reset();
         }
     }
 
